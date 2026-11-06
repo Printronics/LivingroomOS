@@ -2,7 +2,7 @@
 
 **Target platform: Debian 13 (Trixie), amd64 / x86_64**
 
-This guide describes how to install and configure the LivingroomOS **v0.6 pre-release** on a minimal Debian 13 system. The recommended method is to clone the release tag from GitHub and deploy the `livingroomos/` subdirectory.
+This guide describes how to install and configure the current development version of LivingroomOS from the GitHub `main` branch on a minimal Debian 13 system. Use `main` for a fresh test installation so that it includes the latest installation fixes. The older `v0.6` tag does not include all fixes documented here.
 
 **Important:** Complete the Debian installation first by following [DEBIANINSTALL.md](DEBIANINSTALL.md). Do not skip the Debian preparation steps.
 
@@ -98,6 +98,7 @@ sudo apt install -y \
     pipewire \
     pipewire-pulse \
     wireplumber \
+    libgl1-mesa-dri \
     mesa-utils \
     fonts-noto-core \
     fonts-noto-color-emoji \
@@ -166,25 +167,22 @@ The service account should not own or be able to modify trusted application code
 
 ## 6. Download the v0.6 release and deploy the project
 
-Get the source code from the GitHub repository. **Use the release tag `v0.6`**, not the moving `main` branch, so that the installed files match the published pre-release:
+Get the source code from the GitHub repository. **Use the `main` branch**. The `v0.6` tag is an older snapshot and does not contain all fixes in this guide:
 
 ```bash
 cd ~
-git clone --branch v0.6 --single-branch https://github.com/Printronics/LivingroomOS.git
+git clone --branch main --single-branch https://github.com/Printronics/LivingroomOS.git
 ```
 
-The command checks out the `v0.6` tag directly. Git may report a detached `HEAD`; this is expected when checking out a tag. You can verify the checked-out version with:
+Verify the branch and record the exact commit used for the installation:
 
 ```bash
 cd ~/LivingroomOS
-git describe --tags --exact-match
+git branch --show-current
+git rev-parse HEAD
 ```
 
-Expected output:
-
-```text
-v0.6
-```
+The first command should print `main`. Keep the commit hash with your test notes so that installation results can be reproduced.
 
 If GitHub asks for authentication or reports that the repository cannot be found, check that the repository is public or authenticate with an account that has access to it. Do not embed a GitHub access token in the clone URL or in this installation guide.
 
