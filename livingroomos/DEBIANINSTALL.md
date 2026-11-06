@@ -18,11 +18,9 @@ For this installation, the **64-bit PC netinst ISO** is recommended.
 
 Create a bootable USB drive using a suitable tool, such as Rufus or balenaEtcher.
 
-Important: The flashing will erase the selected target disk. Back up any existing data on the USB stick before continuing.
+**Important:** Creating the installation medium will erase the selected USB drive. Back up any existing data on it before continuing.
 
 Boot the target PC from the USB drive.
-
-> Important: The installation will erase the selected target disk. Back up any existing data before continuing.
 
 ## 2. Start the installer
 
@@ -42,7 +40,7 @@ Recommended settings:
 | Location | Your actual country |
 | Keyboard layout | Matching your physical keyboard |
 
-These settings determine the system language, locale, time zone defaults and keyboard configuration.
+These settings determine the system language, locale, time zone defaults, and keyboard configuration.
 
 ## 4. Configure the network
 
@@ -56,7 +54,7 @@ If the installer asks for a hostname:
 
 - Choose any name you like.
 - The hostname is not important for LivingroomOS.
-- For example: `livingroom`, `media-pc`, or `livingroomos`.
+- Examples: `livingroom`, `media-pc`, or `livingroomos`.
 
 If the installer asks for a domain name:
 
@@ -82,7 +80,7 @@ The following values can be chosen freely:
 
 The username does not need to be `livingroomos`. The dedicated LivingroomOS service account will be created later during the application installation.
 
-**Password recommendation:** Use a strong, unique password, especially because the SSH server will be installed. A good password is strongly recommended to protect remote access to the machine.
+**Password recommendation:** Use a strong, unique password, especially because the SSH server will be installed. A strong password is important to protect remote access to the machine.
 
 Do not use an empty password for the regular user.
 
@@ -111,10 +109,10 @@ Select:
 
 This keeps the main Linux filesystem together instead of creating separate partitions for `/home`, `/var`, and other directories.
 
-Depending on the system firmware, Debian may also create:
+Depending on the system firmware and partitioning choices, Debian may also create:
 
 - An EFI System Partition (required for UEFI boot).
-- A swap partition.
+- A swap partition or swap area.
 
 These additional partitions are normal and do not conflict with the intended single-main-partition setup.
 
