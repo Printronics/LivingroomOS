@@ -138,6 +138,13 @@ Der saubere nächste Schritt ist, Apps als **transiente systemd-User-Units** (`s
 Die Oberfläche kann nur `POST /api/v1/system/power/restart` oder `POST /api/v1/system/power/shutdown` anfordern.
 Das Backend mappt diese zwei Werte auf feste Argumentlisten (`systemctl reboot` bzw. `systemctl poweroff`).
 Es gibt keine freie Befehls-, Parameter- oder Shell-Eingabe. Andere Aktionsnamen werden mit HTTP 404 abgewiesen.
-Eine Polkit-Regel in `system/polkit/50-livingroomos-power.rules` erlaubt diese lokalen Power-Aktionen ausschließlich
-dem dedizierten Benutzer `livingroomos`. Die Regel muss bei der Installation nach `/etc/polkit-1/rules.d/` kopiert
-werden. Sie verleiht dem Konto keine allgemeinen Root-Rechte.
+
+**Berechtigungsgrenze:** Das Repository enthält derzeit keine eigene Polkit-Regel. Die Aktionen unterliegen deshalb
+der systemweiten systemd-logind-/Polkit-Standardrichtlinie. Auf einem aktiven lokalen Benutzerplatz erlaubt die
+Standardrichtlinie Neustart und Herunterfahren; diese Berechtigung ist nicht exklusiv auf `livingroomos`
+beschränkt. Die Oberfläche begrenzt lediglich die angebotenen Aktionen, sie schafft keine zusätzliche
+Berechtigungsgrenze gegenüber anderen Prozessen desselben aktiven Benutzers.
+
+Vor einem Release muss diese Eigenschaft auf Debian 13 geprüft und in der Sicherheitsbewertung berücksichtigt
+werden. Insbesondere darf die Dokumentation nicht behaupten, dass eine nicht vorhandene Projektregel die
+Power-Aktionen ausschließlich dem Dienstkonto erlaubt.
