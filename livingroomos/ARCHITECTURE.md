@@ -24,7 +24,7 @@ At runtime, the system consists of only **a compositor, a browser, and one Pytho
 | Initial target hardware | Intel NUC (x86_64) |
 | Future target hardware | x86_64 PC (Intel/AMD) |
 | Operating system | Debian 13 "Trixie", packages from the Debian archive only |
-| Input | Remote control or keyboard (arrow keys, Enter, Back, Home); no mouse |
+| Input | keyboard and mouse (arrow keys, Enter, Back, Home); |
 | Initial non-goals | File manager, built-in media library, multi-user operation, remote access over the network |
 
 ## 2. System Overview
@@ -158,7 +158,7 @@ The crash dialog appears for `crashed` and `start_failed`. Whenever an applicati
 
 **Process identity.** A process is identified using `/proc/<pid>/stat` (start time) and `pidfd_open`. PID reuse therefore cannot cause an unrelated process to be terminated.
 
-**Backend crash.** `state.json` (0600, stored in RAM under `$XDG_RUNTIME_DIR`) holds the PID and start time of the running application. A new backend can adopt it if the information is still valid. A lock file (`flock`) prevents two backend instances from running simultaneously. However, with the unit's default `KillMode=control-group`, the application exits together with the backend. Adoption is only relevant if the administrator selects `KillMode=process` (see `docs/SECURITY.md`).
+**Backend crash.** `state.json` (0600, stored in RAM under `$XDG_RUNTIME_DIR`) holds the PID and start time of the running application. A new backend can adopt it if the information is still valid. A lock file (`flock`) prevents two backend instances from running simultaneously. However, with the unit's default `KillMode=control-group`, the application exits together with the backend. Adoption is only relevant if the administrator selects `KillMode=process`(see `docs/SICHERHEIT.md`).
 
 ## 6. Boot and Startup Sequence
 
