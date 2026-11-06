@@ -147,6 +147,9 @@ def parse_apps(raw_apps: list[Any]) -> tuple[dict[str, AppDefinition], list[str]
                 env.append((key, value))
 
             color = raw.get("color", "#3a4256")
+            category = raw.get("category", "media")
+            if not isinstance(category, str) or category not in {"media", "debug"}:
+                category = "media"
             apps[app_id] = AppDefinition(
                 id=app_id,
                 title=title.strip(),
@@ -156,7 +159,7 @@ def parse_apps(raw_apps: list[Any]) -> tuple[dict[str, AppDefinition], list[str]
                 command=tuple(command),
                 env=tuple(env),
                 long_running=bool(raw.get("long_running", True)),
-                category=raw.get("category", "media") if raw.get("category", "media") in {"media", "debug"} else "media",
+                category=category,
             )
         except ValueError as exc:
             problems.append(f"apps[{index}]: {exc}")
