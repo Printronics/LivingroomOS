@@ -412,7 +412,9 @@ sudo install -o livingroomos -g livingroomos -m 644 \
 
 The labwc autostart file runs `systemctl --user start livingroomos.target` inside the `livingroomos` graphical session. The target starts the backend and Chrome launcher. These units are therefore started by the session; do not install them under `/etc/systemd/system/` and do not enable them as system services.
 
-After the first greetd login, inspect the user manager from a terminal in the LivingroomOS session:
+**Important:** `systemctl --user` always addresses the user manager of the account running the command. Running it as the regular administrator (for example, `alex`) will not find units installed under `/var/lib/livingroomos`. Do not run the following commands as the administrator account.
+
+After greetd has started the LivingroomOS session, open a terminal in that session and run:
 
 ```bash
 systemctl --user daemon-reload
@@ -421,9 +423,27 @@ systemctl --user status livingroomos-backend.service
 systemctl --user status livingroomos-shell.service
 ```
 
+If you need to inspect or reload the user manager remotely over SSH, first enable lingering for the service account so its user manager exists without an interactive login:
+
+```bash
+sudo loginctl enable-linger livingroomos
+```
+
+Then address that account's manager explicitly (this example derives its numeric UID instead of assuming a fixed UID):
+
+```bash
+LIVINGROOMOS_UID=$(id -u livingroomos)
+sudo -u livingroomos env XDG_RUNTIME_DIR=/run/user/$LIVINGROOMOS_UID systemctl --user daemon-reload
+sudo -u livingroomos env XDG_RUNTIME_DIR=/run/user/$LIVINGROOMOS_UID systemctl --user status livingroomos.target
+sudo -u livingroomos env XDG_RUNTIME_DIR=/run/user/$LIVINGROOMOS_UID systemctl --user status livingroomos-backend.service
+sudo -u livingroomos env XDG_RUNTIME_DIR=/run/user/$LIVINGROOMOS_UID systemctl --user status livingroomos-shell.service
+```
+
+Use the SSH commands only to reload or inspect units. Do not start `livingroomos.target` from a plain SSH shell: the Chrome launcher needs the Wayland display environment provided by the graphical greetd/labwc session. The labwc autostart starts the target at the appropriate time.
+
 The backend unit uses `%h/.config/livingroomos/settings.json`. For the `livingroomos` account, `%h` must resolve to `/var/lib/livingroomos`.
 
-The greetd configuration is installed separately in Section 11. Reloading the system-wide systemd manager does not reload user units; use `systemctl --user daemon-reload` from the corresponding user session.
+The greetd configuration is installed separately in Section 11. Reloading the system-wide systemd manager does not reload user units; use `systemctl --user daemon-reload` from the corresponding user manager.
 
 ## 13. Configure power management permissions
 
