@@ -236,7 +236,7 @@ sudo /opt/livingroomos/.venv/bin/pip install \
 
 The `run.sh` entry point automatically uses `/opt/livingroomos/.venv` when that environment exists; otherwise it uses Debian's system Python. Keep the virtual environment root-owned and do not install Python packages globally with `sudo pip`.
 
-The service account needs permission to execute the virtual environment, but it must not have permission to modify it.
+When using the optional virtual environment, the service account needs permission to execute it but must not have permission to modify it.
 
 ---
 
