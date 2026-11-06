@@ -66,7 +66,7 @@ Each task has exactly one designated location. Dependencies point downward only:
 | `main.py` | Application factory, lifecycle (acquiring the lock, stopping applications), host validation, CSRF header, security headers, error format, serving the frontend | Business logic |
 | `version.py` | Single source of the version number | |
 | `api/apps.py` | REST router for applications: list, status, start, stop; translates exceptions into HTTP status codes | Processes, filesystem |
-| `api/system.py` | `health` and `system/status` (read-only) | System commands |
+| `api/system.py` | `health`, `system/status`, and allowlisted restart/shutdown actions | Arbitrary system commands |
 | `api/settings.py` | Read and modify interface settings (input validation with Pydantic) | Other configuration sections |
 | `services/app_launcher.py` | Converts an app ID into a validated launch command; checks configuration, executable path, ownership, permissions, profile directory, and environment; provides the return command | Process monitoring |
 | `services/process_manager.py` | Starts, monitors, and stops exactly one application; prevents duplicate starts, detects crashes, manages process groups, finds remaining child processes, stores state, and locks the backend | Building the command line |
@@ -114,7 +114,7 @@ The frontend communicates exclusively with `http://127.0.0.1:8750`. Commands use
 | `GET /api/v1/apps/status` | `state`, `app_id`, `pid`, `last_exit` | |
 | `POST /api/v1/apps/{id}/launch` | Start an application | 202; 404 unknown; 409 `busy`; 422 `not_installed` |
 | `POST /api/v1/apps/stop` | Stop the active application | |
-| `POST /api/v1/apps/{id}/stop` | Stop only the specified application | 409 `not_running` if it is not running |
+| `POST /api/v1/apps/{id}/stop` | Stop only the specified application | 409 `not_running` if it is not running |\n| `POST /api/v1/system/power/restart`, `POST /api/v1/system/power/shutdown` | Request one of the two fixed system power actions | 202 accepted; unsupported actions return 404 |
 | `GET /api/v1/settings`, `PATCH /api/v1/settings` | Read and update interface settings (`ui`) | 422 for unknown keys |
 
 Rules:
@@ -222,7 +222,7 @@ The first design was a target architecture. The implementation is a prototype th
 | SSE stream `/api/v1/events` with snapshot | Polling `/apps/status` (1.2 to 6 seconds) | SSE requires a persistent connection, event bus, and reconnection logic. For state that changes infrequently, polling is simpler and inexpensive at 4-second idle intervals. **Consequence:** up to 1.2 seconds of delay for state changes. Can be replaced without changing the API contract. |
 | Package `livingroomos/` with `registry`, `supervisor`, `launchers`, `runner`, `compositor`, `events`, `platform`, `security`, `config` | Flat `api/` and `services/` modules using the filenames specified by the project requirements | The required filenames were specified by the project. Responsibilities are still separated (configuration validation and command construction in `AppLauncher`, process lifecycle in `ProcessManager`). |
 | TOML configuration with Pydantic and layers (`/etc`, user) | One JSON file, used at runtime from `~/.config/livingroomos/settings.json` (`LIVINGROOMOS_CONFIG`) | The project specified `settings.json`. Validation is implemented in `parse_apps`. |
-| Endpoints `/state`, `/home`, `/session/foreground/stop`, `/audio/volume`, `/system/power`, `/events` | `/apps/status`, `/apps/stop`, `/apps/{id}/stop`, `/system/status`, `/settings` | Only what the prototype needs. Audio and power management were not implemented in this version. |
+| Endpoints `/state`, `/home`, `/session/foreground/stop`, `/audio/volume`, `/system/power`, `/events` | `/apps/status`, `/apps/stop`, `/apps/{id}/stop`, `/system/status`, `/system/power/{restart,shutdown}`, `/settings` | Only the two fixed power actions (restart and shutdown) are implemented; audio and advanced power management are not. |
 | RFC 9457 error format | `{"error": {"code", "message"}}` | Simpler for the frontend; conveys the same information. |
 | Security middleware with Origin validation and JSON requirement | Host validation plus required `X-LivingroomOS` header | The custom header provides CSRF protection without Origin evaluation. |
 | Separate compositor bridge module (`WlrctlBridge`) | Optional `server.return_to_launcher_command` | Focus usually returns automatically after the application window closes; the command is an additional measure. |
@@ -248,4 +248,4 @@ Unchanged from the original design: the single-foreground-application principle,
 - Run applications as transient systemd units with `MemoryMax` and sandboxing. Only the runner in `ProcessManager` needs to change.
 - Use SSE for status events instead of polling.
 - Add platform profiles (Google Chrome flags per device) after measurements on x86_64 PCs.
-- Implement audio (volume control) and power management (shutdown, restart) as separate, small services.
+- Implement audio (volume control) as a separate, small service.\n- Extend power management only if needed (for example, suspend); restart and shutdown are already implemented.
