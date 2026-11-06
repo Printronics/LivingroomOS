@@ -4,7 +4,7 @@
 
   Es gibt bewusst kein <default />: Damit entfallen Alt+Tab, Alt+F4, das Fenstermenü und der Wechsel auf
   virtuelle Konsolen. Das schützt vor Fehlbedienung, nicht vor Angreifern am Gerät (siehe ARCHITECTURE.md).
-  Vollbild erzwingen die Apps selbst (--kiosk bzw. --start-fullscreen).
+  Vollbild erzwingen die Apps selbst (Kiosk-Option bzw. Vollbild-Option).
 -->
 <labwc_config>
   <windowRules>
