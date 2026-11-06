@@ -9,6 +9,7 @@ Diese Tests erzwingen die Projektregeln automatisch:
 from __future__ import annotations
 
 import ast
+import importlib.util
 import json
 import re
 import sys
@@ -22,6 +23,11 @@ sys.path.insert(0, str(BACKEND))
 from services.app_launcher import parse_apps  # noqa: E402
 from services.settings_store import SettingsStore  # noqa: E402
 from version import __version__  # noqa: E402
+
+_CHECKER_SPEC = importlib.util.spec_from_file_location("livingroomos_check_system", ROOT / "tools" / "check_system.py")
+assert _CHECKER_SPEC is not None and _CHECKER_SPEC.loader is not None
+_CHECKER = importlib.util.module_from_spec(_CHECKER_SPEC)
+_CHECKER_SPEC.loader.exec_module(_CHECKER)
 
 # Direkt importiert, aber von fastapi mitgebracht (Begründung in requirements.txt).
 BROUGHT_BY_FASTAPI = {"starlette", "pydantic"}
@@ -96,6 +102,19 @@ class ShippedConfigTests(unittest.TestCase):
     def test_config_text_names_no_architecture(self) -> None:
         text = (BACKEND / "config" / "settings.json").read_text(encoding="utf-8")
         self.assertIsNone(ARM_WORDS.search(text))
+
+
+class SystemCheckerTests(unittest.TestCase):
+    def test_only_debian_13_trixie_is_supported(self) -> None:
+        self.assertTrue(_CHECKER.is_supported_os({
+            "ID": "debian", "VERSION_ID": "13", "VERSION_CODENAME": "trixie"
+        }))
+        self.assertFalse(_CHECKER.is_supported_os({
+            "ID": "debian", "VERSION_ID": "12", "VERSION_CODENAME": "bookworm"
+        }))
+        self.assertFalse(_CHECKER.is_supported_os({
+            "ID": "ubuntu", "VERSION_ID": "24.04", "VERSION_CODENAME": "noble"
+        }))
 
 
 class PortabilityTests(unittest.TestCase):
