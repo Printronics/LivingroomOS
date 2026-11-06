@@ -2,11 +2,11 @@
 
 **Target platform: Debian 13 (Trixie), amd64 / x86_64**
 
-This guide describes how to install and configure LivingroomOS on a minimal Debian 13 system.
+This guide describes how to install and configure the LivingroomOS **v0.6 pre-release** on a minimal Debian 13 system. The recommended method is to clone the release tag from GitHub and deploy the `livingroomos/` subdirectory.
 
 **Important:** Complete the Debian installation first by following [DEBIANINSTALL.md](DEBIANINSTALL.md). Do not skip the Debian preparation steps.
 
-LivingroomOS is currently intended for internal testing. Perform the initial installation on a dedicated test machine.
+LivingroomOS v0.6 is a pre-release. Perform the initial installation on a dedicated test machine and expect that features or installation steps may still change.
 
 ---
 
@@ -173,20 +173,39 @@ The service account should not own or be able to modify trusted application code
 
 ---
 
-## 6. Deploy the project
+## 6. Download the v0.6 release and deploy the project
 
-The application files are located in the repository's `livingroomos/` subdirectory.
+Get the source code from the GitHub repository. **Use the release tag `v0.6`**, not the moving `main` branch, so that the installed files match the published pre-release:
 
-Copy the contents of that directory to `/opt/livingroomos`.
+```bash
+cd ~
+git clone --branch v0.6 --single-branch \\
+    https://github.com/Printronics/LivingroomOS.git
+```
 
-For example, if the repository was cloned into your home directory:
+The command checks out the `v0.6` tag directly. Git may report a detached `HEAD`; this is expected when checking out a tag. You can verify the checked-out version with:
+
+```bash
+cd ~/LivingroomOS
+git describe --tags --exact-match
+```
+
+Expected output:
+
+```text
+v0.6
+```
+
+If GitHub asks for authentication or reports that the repository cannot be found, check that the repository is public or authenticate with an account that has access to it. Do not embed a GitHub access token in the clone URL or in this installation guide.
+
+The application files are located in the repository's `livingroomos/` subdirectory. Copy the contents of that directory to `/opt/livingroomos`:
 
 ```bash
 sudo install -d -o root -g root -m 755 /opt/livingroomos
 sudo cp -a ~/LivingroomOS/livingroomos/. /opt/livingroomos/
 ```
 
-Adjust the source path if your repository is stored somewhere else.
+If you cloned the repository into a different directory, adjust the source path accordingly.
 
 Set ownership and permissions:
 
@@ -624,4 +643,4 @@ This installation guide describes the intended deployment configuration. Hardwar
 
 Test the complete startup and recovery process before deploying LivingroomOS to a device that is used regularly.
 
-**LivingroomOS is currently intended for internal testing.**
+**LivingroomOS v0.6 is a pre-release.** Use a dedicated test machine and review the release notes before installation.
