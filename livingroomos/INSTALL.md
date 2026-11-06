@@ -560,36 +560,32 @@ Do not work around permission errors by granting unrestricted root access to the
 
 ## 17. Uninstall and recovery
 
-If the automatic session prevents normal access:
+The kiosk configuration deliberately omits labwc's default virtual-terminal shortcuts. Do not rely on `Ctrl+Alt+F2` to recover access.
 
-1. Switch to a TTY using the appropriate keyboard shortcut, commonly `Ctrl+Alt+F2`.
-2. Log in with an administrator account.
-3. Disable greetd:
+Use SSH with the regular Debian administrator account (the Debian installation guide enables the SSH server). If SSH is unavailable, use Debian rescue mode or a live recovery medium.
+
+Disable greetd:
 
 ```bash
 sudo systemctl disable --now greetd
 ```
 
-4. Reboot:
-
-```bash
-sudo reboot
-```
-
-To remove the application after disabling its services:
+Remove the application and the system-wide configuration files installed specifically for LivingroomOS:
 
 ```bash
 sudo rm -rf /opt/livingroomos
+sudo rm -f \
+    /etc/opt/chrome/policies/managed/livingroomos.json \
+    /etc/polkit-1/rules.d/50-livingroomos-power.rules
 ```
 
-Remove only the systemd user units and Polkit rule that were installed specifically for LivingroomOS:
+Remove the systemd user units:
 
 ```bash
 sudo rm -f \
     /var/lib/livingroomos/.config/systemd/user/livingroomos-backend.service \
     /var/lib/livingroomos/.config/systemd/user/livingroomos-shell.service \
-    /var/lib/livingroomos/.config/systemd/user/livingroomos.target \
-    /etc/polkit-1/rules.d/50-livingroomos-power.rules
+    /var/lib/livingroomos/.config/systemd/user/livingroomos.target
 ```
 
 If the `livingroomos` user manager is still running, reload it from that user's active session:
@@ -598,7 +594,14 @@ If the `livingroomos` user manager is still running, reload it from that user's 
 systemctl --user daemon-reload
 ```
 
-There are no LivingroomOS system-wide systemd units to reload.
+**Restore greetd configuration:** Section 11 replaces `/etc/greetd/config.toml`. Restore the backup made before installation. If no backup exists, configure greetd for the login/session you want before enabling it again. Do not re-enable greetd while its configuration still points to the removed LivingroomOS session script.
+
+The runtime settings, Chrome profiles, and logs are stored under `/var/lib/livingroomos`. Remove them only if you no longer need them:
+
+```bash
+sudo rm -rf /var/lib/livingroomos
+sudo userdel livingroomos
+```
 
 Do not remove shared Debian packages unless you have confirmed that no other installed software depends on them.
 
