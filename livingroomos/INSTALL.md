@@ -436,6 +436,8 @@ sudo install -o livingroomos -g livingroomos -m 644 \
 
 The labwc autostart file runs `systemctl --user start livingroomos.target` inside the `livingroomos` graphical session. The target starts the backend and Chrome launcher. These units are therefore started by the session; do not install them under `/etc/systemd/system/` and do not enable them as system services.
 
+The Chrome launcher unit sets `XDG_CONFIG_HOME` and `XDG_CACHE_HOME` to dedicated, writable directories below `/var/lib/livingroomos/.local/share/livingroomos`. Its `ExecStartPre` creates these directories with mode `0700`. Keep these settings in the unit: Chrome can fail very early during startup if its XDG configuration/cache locations are missing or not writable. The dedicated paths also avoid relying on the ownership or contents of the service account's general `~/.config` directory.
+
 **Important:** `systemctl --user` always addresses the user manager of the account running the command. Running it as the regular administrator (for example, `alex`) will not find units installed under `/var/lib/livingroomos`. Do not run the following commands as the administrator account.
 
 After greetd has started the LivingroomOS session, open a terminal in that session and run:
@@ -593,7 +595,21 @@ Check the installed browser:
 google-chrome-stable --version
 ```
 
-Check the session environment and display permissions.
+Inspect the user service and its recent log:
+
+```bash
+systemctl --user show livingroomos-shell.service -p Environment
+journalctl --user -u livingroomos-shell.service -b --no-pager -n 80
+```
+
+The service must define writable `XDG_CONFIG_HOME` and `XDG_CACHE_HOME` paths below `%h/.local/share/livingroomos`. If you changed the unit, reload the user manager and restart the service:
+
+```bash
+systemctl --user daemon-reload
+systemctl --user restart livingroomos-shell.service
+```
+
+Check the session environment and display permissions. When testing Chrome manually, use the same XDG paths and the active Wayland/DBus session environment as the service.
 
 ### The graphical session does not start
 
