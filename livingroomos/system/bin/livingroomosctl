@@ -1,0 +1,85 @@
+#!/usr/bin/env python3
+"""livingroomosctl – kleines Kommandozeilenwerkzeug für Tastenkürzel und systemd-Units.
+
+Spricht ausschließlich per HTTP mit dem LivingroomOS-Backend auf 127.0.0.1 (Port aus
+LIVINGROOMOS_PORT, Standard 8750). Es startet keine Programme und nutzt nur die Standardbibliothek.
+
+  livingroomosctl home          beendet die laufende App; der Launcher ist wieder sichtbar
+  livingroomosctl status        gibt den Status des Backends als JSON aus
+  livingroomosctl wait [SEK]    wartet (Standard 60 s), bis das Backend bereit ist
+
+Exit-Codes: 0 Erfolg, 1 Backend nicht erreichbar oder Fehler, 2 falsche Bedienung.
+"""
+from __future__ import annotations
+
+import json
+import os
+import sys
+import time
+import urllib.error
+import urllib.request
+
+# Proxy-Einstellungen der Umgebung dürfen Loopback-Aufrufe nie umleiten.
+_OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
+
+def base_url() -> str:
+    return f"http://127.0.0.1:{int(os.environ.get('LIVINGROOMOS_PORT', '8750'))}"
+
+
+def call(method: str, path: str, timeout: float = 3.0) -> dict:
+    request = urllib.request.Request(
+        base_url() + path,
+        method=method,
+        data=b"" if method == "POST" else None,
+        headers={"X-LivingroomOS": "1"},  # Pflicht für schreibende Aufrufe (CSRF-Schutz des Backends)
+    )
+    with _OPENER.open(request, timeout=timeout) as response:
+        return json.load(response)
+
+
+def wait_ready(seconds: float) -> bool:
+    deadline = time.monotonic() + seconds
+    while True:
+        try:
+            if call("GET", "/api/v1/health", timeout=2).get("status") == "ok":
+                return True
+        except (OSError, ValueError):
+            pass
+        if time.monotonic() >= deadline:
+            return False
+        time.sleep(0.5)
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = list(sys.argv[1:] if argv is None else argv)
+    if not args or args[0] not in {"home", "status", "wait"} or len(args) > 2:
+        print(__doc__, file=sys.stderr)
+        return 2
+    command = args[0]
+    try:
+        if command == "wait":
+            seconds = float(args[1]) if len(args) == 2 else 60.0
+            if wait_ready(seconds):
+                return 0
+            print("livingroomosctl: Backend wurde nicht rechtzeitig bereit.", file=sys.stderr)
+            return 1
+        if len(args) != 1:
+            print(__doc__, file=sys.stderr)
+            return 2
+        result = call("POST", "/api/v1/apps/stop") if command == "home" else call("GET", "/api/v1/apps/status")
+        print(json.dumps(result, ensure_ascii=False))
+        return 0
+    except ValueError:
+        print("livingroomosctl: ungültiger Wert für die Wartezeit.", file=sys.stderr)
+        return 2
+    except urllib.error.HTTPError as exc:
+        print(f"livingroomosctl: Backend meldet HTTP {exc.code}.", file=sys.stderr)
+        return 1
+    except OSError as exc:
+        print(f"livingroomosctl: Backend nicht erreichbar: {exc}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

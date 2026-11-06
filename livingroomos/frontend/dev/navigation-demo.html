@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>LivingroomOS – Navigationstest</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/layout.css">
+  <link rel="stylesheet" href="demo.css">
+  <script type="module" src="demo.js"></script>
+</head>
+<body>
+  <!-- Ohne Backend nutzbar:  cd frontend && python3 -m http.server 8000  →  /dev/navigation-demo.html -->
+  <div class="shell demo">
+    <header class="topbar">
+      <h1 class="brand">Navigations<span>test</span></h1>
+      <div class="topbar__right"><span class="clock" id="count">0 Aktionen</span></div>
+    </header>
+
+    <main class="stage">
+      <section id="view" class="view">
+        <ul id="grid" class="demo__grid"></ul>
+        <ul id="list" class="settings"></ul>
+      </section>
+    </main>
+
+    <footer class="demo__keys" aria-live="off">
+      <div>Letzte Taste: <b id="k-key">–</b> · code <b id="k-code">–</b> · keyCode <b id="k-keycode">–</b> → Aktion <b id="k-action">–</b></div>
+      <div>Unbekannte Taste: <b id="k-unknown">–</b> <span class="demo__hint">(für die Fernbedienung: Wert mit remote.bind(…) zuordnen)</span></div>
+    </footer>
+  </div>
+
+  <div id="overlay" class="overlay" hidden>
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-title">
+      <h2 id="dlg-title" class="dialog__title">Dialog</h2>
+      <p class="dialog__text">Enter doppelt schnell gedrückt bestätigt nicht sofort „Schließen“.</p>
+      <div id="dlg-actions" class="dialog__actions"></div>
+    </div>
+  </div>
+</body>
+</html>

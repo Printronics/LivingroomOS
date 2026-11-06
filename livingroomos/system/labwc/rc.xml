@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<!--
+  LivingroomOS – labwc-Konfiguration (Kiosk). UNGETESTET auf echter Hardware, Syntax nach labwc-config(5).
+
+  Es gibt bewusst kein <default />: Damit entfallen Alt+Tab, Alt+F4, das Fenstermenü und der Wechsel auf
+  virtuelle Konsolen. Das schützt vor Fehlbedienung, nicht vor Angreifern am Gerät (siehe ARCHITECTURE.md).
+  Vollbild erzwingen die Apps selbst (--kiosk bzw. --start-fullscreen).
+-->
+<labwc_config>
+  <windowRules>
+    <windowRule identifier="*">
+      <serverDecoration>no</serverDecoration>
+    </windowRule>
+  </windowRules>
+
+  <keyboard>
+    <!-- Home-Taste der Fernbedienung: laufende App beenden, Launcher wird wieder sichtbar. -->
+    <keybind key="XF86HomePage">
+      <action name="Execute" command="/opt/livingroomos/system/bin/livingroomosctl home" />
+    </keybind>
+    <!-- Notfall an der Tastatur, falls die Fernbedienung keine Home-Taste sendet. -->
+    <keybind key="C-A-Home">
+      <action name="Execute" command="/opt/livingroomos/system/bin/livingroomosctl home" />
+    </keybind>
+  </keyboard>
+</labwc_config>

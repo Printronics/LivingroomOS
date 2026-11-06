@@ -1,0 +1,32 @@
+#!/bin/sh
+# livingroomos-session – startet den Compositor labwc und startet ihn nach Abstürzen neu.
+# greetd führt die initial_session nur einmal pro Boot aus, daher die Schleife hier.
+# Nach MAX_CRASHES Abstürzen innerhalb von WINDOW_S Sekunden endet das Skript; greetd zeigt dann die
+# Textanmeldung (default_session) statt eines endlosen Neustarts.
+set -u
+
+LABWC_CONFIG_DIR=/opt/livingroomos/system/labwc
+MAX_CRASHES=5
+WINDOW_S=60
+
+crashes=0
+window_start=$(date +%s)
+
+while :; do
+    labwc -C "$LABWC_CONFIG_DIR"
+    status=$?
+    if [ "$status" -eq 0 ]; then
+        exit 0          # reguläres Ende (Abmelden)
+    fi
+    now=$(date +%s)
+    if [ $((now - window_start)) -gt "$WINDOW_S" ]; then
+        window_start=$now
+        crashes=0
+    fi
+    crashes=$((crashes + 1))
+    echo "livingroomos-session: labwc beendet mit Status $status (Absturz $crashes von $MAX_CRASHES)" >&2
+    if [ "$crashes" -ge "$MAX_CRASHES" ]; then
+        exit 1
+    fi
+    sleep 1
+done

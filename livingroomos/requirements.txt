@@ -1,0 +1,12 @@
+# LivingroomOS – Python-Abhängigkeiten zur Laufzeit.
+#
+# Empfohlener Weg auf Debian 13: dieselben Bibliotheken aus apt (python3-fastapi,
+# python3-uvicorn), siehe INSTALL.md und docs/SYSTEMABHAENGIGKEITEN.md. Diese Datei dient
+# der Entwicklung und dem venv-Weg:  python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+#
+# Direkt importiert, aber von fastapi mitgebracht (deshalb nicht einzeln aufgeführt):
+# starlette (Middleware, Statikdateien) und pydantic (Eingabeprüfung der Einstellungen).
+# Alle Pakete sind reines Python oder bieten Wheels für x86_64.
+# Die Standardbibliothek (asyncio, fcntl, signal, json …) deckt alles übrige ab.
+fastapi>=0.110,<1.0
+uvicorn>=0.27,<1.0

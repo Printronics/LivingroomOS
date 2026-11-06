@@ -1,0 +1,16 @@
+# LivingroomOS – greetd: meldet den Benutzer "livingroomos" beim Start automatisch an und startet labwc.
+# Installation: nach /etc/greetd/config.toml kopieren (siehe INSTALL.md). UNGETESTET auf echter Hardware.
+
+[terminal]
+vt = 1
+
+# Wird nur gezeigt, wenn die automatische Sitzung endet (z. B. nach zu vielen labwc-Abstürzen):
+# eine einfache Textanmeldung. Das ist der "Fehlerbild"-Zustand der Architektur.
+[default_session]
+command = "agreety --cmd /bin/bash"
+user = "_greetd"
+
+# Läuft genau einmal pro Boot; die Neustart-Schleife steckt deshalb im Sitzungsskript.
+[initial_session]
+command = "/opt/livingroomos/system/bin/livingroomos-session"
+user = "livingroomos"

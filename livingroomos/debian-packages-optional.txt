@@ -1,0 +1,11 @@
+# LivingroomOS – optionale Debian-13-Pakete. Nichts davon ist für den Grundbetrieb nötig.
+# Begründung je Paket: docs/SYSTEMABHAENGIGKEITEN.md. Vor der Installation prüfen:  apt-cache policy <paket>
+unzip                  # nur zum Entpacken des Projektarchivs livingroomos.zip
+wlrctl                 # Compositor-Brücke: Fokus zurück zum Launcher (return_to_launcher_command)
+wlr-randr              # Auflösung und Bildwiederholrate im labwc-Autostart setzen
+python3-venv           # nur für den pip-Weg (virtuelle Umgebung)
+python3-httpx          # nur für die API-Tests (backend/tests/test_api.py)
+intel-media-va-driver  # Hardware-Videodekodierung auf Intel-NUCs (VA-API)
+mesa-va-drivers        # VA-API für AMD-Grafik
+vainfo                 # Diagnose der Videodekodierung
+unattended-upgrades    # automatische Sicherheitsupdates

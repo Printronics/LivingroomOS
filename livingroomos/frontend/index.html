@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>LivingroomOS</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <script type="module" src="js/app.js"></script>
+</head>
+<body data-view="home" data-tile-size="normal">
+  <div class="shell">
+    <header class="topbar">
+      <h1 class="brand">LivingroomOS</h1>
+      <div class="topbar__right">
+        <span id="conn" class="pill" data-state="connecting">Verbinde …</span>
+        <time id="clock" class="clock"></time>
+      </div>
+    </header>
+
+    <main class="stage">
+      <section id="view-home" class="view" aria-label="Apps">
+        <ul id="tiles" class="tiles"></ul>
+      </section>
+
+      <section id="view-settings" class="view" aria-label="Einstellungen" hidden>
+        <h2 class="view__title">Einstellungen</h2>
+        <ul id="settings-list" class="settings"></ul>
+      </section>
+    </main>
+
+    <footer class="hints" aria-hidden="true">
+      <span><kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> Navigieren</span>
+      <span><kbd>Enter</kbd> Öffnen</span>
+      <span><kbd>Esc</kbd> Zurück</span>
+    </footer>
+  </div>
+
+  <div id="overlay" class="overlay" hidden>
+    <div id="dialog" class="dialog" role="dialog" aria-modal="true" aria-labelledby="overlay-title" data-tone="info">
+      <div id="overlay-spinner" class="spinner" hidden></div>
+      <h2 id="overlay-title" class="dialog__title"></h2>
+      <p id="overlay-text" class="dialog__text"></p>
+      <div id="overlay-actions" class="dialog__actions"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <noscript><p class="noscript">LivingroomOS benötigt JavaScript.</p></noscript>
+</body>
+</html>

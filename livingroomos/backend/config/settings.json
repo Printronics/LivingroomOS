@@ -1,0 +1,94 @@
+{
+  "server": {
+    "data_dir": "~/.local/share/livingroomos",
+    "startup_grace_s": 1.0,
+    "stop_timeout_s": 5.0,
+    "trusted_bin_dirs": [
+      "/usr/local/bin",
+      "/usr/bin",
+      "/opt"
+    ],
+    "return_to_launcher_command": null
+  },
+  "ui": {
+    "clock_24h": true,
+    "show_clock": true,
+    "tile_size": "normal",
+    "reduce_motion": false,
+    "confirm_power": true,
+    "show_app_subtitles": true
+  },
+  "apps": [
+    {
+      "id": "webapp-one",
+      "title": "Streaming-App 1",
+      "subtitle": "Eigener Streaming-Dienst",
+      "icon": "1",
+      "color": "#3b6688",
+      "command": [
+        "google-chrome-stable",
+        "--app=https://example.com/",
+        "--user-data-dir={profile_dir}",
+        "--ozone-platform=wayland",
+        "--start-fullscreen"
+      ],
+      "category": "media"
+    },
+    {
+      "id": "webapp-two",
+      "title": "Streaming-App 2",
+      "subtitle": "Eigener Video-Dienst",
+      "icon": "2",
+      "color": "#477b68",
+      "command": [
+        "google-chrome-stable",
+        "--app=https://example.org/",
+        "--user-data-dir={profile_dir}",
+        "--ozone-platform=wayland",
+        "--start-fullscreen"
+      ],
+      "category": "media"
+    },
+    {
+      "id": "webapp-three",
+      "title": "Mediathek",
+      "subtitle": "Eigene Mediathek",
+      "icon": "3",
+      "color": "#76618f",
+      "command": [
+        "google-chrome-stable",
+        "--app=http://localhost:8096/",
+        "--user-data-dir={profile_dir}",
+        "--ozone-platform=wayland",
+        "--start-fullscreen"
+      ],
+      "category": "media"
+    },
+    {
+      "id": "demo",
+      "title": "Demo-App",
+      "subtitle": "Testprozess, läuft 10 Minuten",
+      "icon": "D",
+      "color": "#2f9e6f",
+      "command": [
+        "{python}",
+        "-c",
+        "import time; time.sleep(600)"
+      ],
+      "category": "debug"
+    },
+    {
+      "id": "demo-crash",
+      "title": "Absturz-Test",
+      "subtitle": "Beendet sich nach 3 s mit Fehler",
+      "icon": "!",
+      "color": "#c98a1b",
+      "command": [
+        "{python}",
+        "-c",
+        "import sys, time; time.sleep(3); sys.exit(3)"
+      ],
+      "category": "debug"
+    }
+  ]
+}

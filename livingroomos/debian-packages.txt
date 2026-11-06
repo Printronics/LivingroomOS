@@ -1,0 +1,19 @@
+# LivingroomOS – Debian-13-Pflichtpakete ("trixie"; für amd64).
+# Installation:  sudo apt install --no-install-recommends $(grep -v '^[[:space:]]*#' debian-packages.txt | awk '{print $1}')
+# Begründung je Paket: docs/SYSTEMABHAENGIGKEITEN.md. Optionale Pakete: debian-packages-optional.txt.
+# Ein Paket je Zeile, danach optional ein Kommentar.
+python3                # Laufzeit des Backends (Debian 13: 3.13; benötigt wird >= 3.11)
+python3-fastapi        # Web-Framework des Backends (zieht starlette und pydantic nach)
+python3-uvicorn        # ASGI-Server
+labwc                  # Wayland-Compositor
+greetd                 # Autologin in die labwc-Sitzung
+systemd                # Dienste und Benutzer-Units (auf Debian bereits vorhanden)
+dbus-user-session      # startet systemd --user je Sitzung
+libpam-systemd         # legt die logind-Sitzung an (Zugriff auf GPU und Eingabegeräte)
+polkitd                # Autorisierung der begrenzten Neustart-/Shutdown-Aktionen
+pipewire               # Audio
+pipewire-pulse         # Audio-Kompatibilität für Google Chrome
+wireplumber            # Sitzungsverwaltung für PipeWire
+libgl1-mesa-dri        # Mesa-Grafiktreiber (Intel/AMD x86_64)
+fonts-noto-core        # Schriften für Oberfläche und Webseiten
+fonts-noto-color-emoji # Emoji in Webseiten

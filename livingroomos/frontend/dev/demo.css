@@ -1,0 +1,11 @@
+/* Nur für die Demo: ungleich große Elemente, damit die Geometrie-Navigation sichtbar wird. */
+.demo { overflow: hidden; }
+.demo__grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1.4rem; margin-bottom: 1.6rem; }
+.demo__grid li { height: 9rem; }
+.demo__grid li.w2 { grid-column: span 2; }
+.demo__grid li.w3 { grid-column: span 3; }
+.demo__grid .tile { height: 100%; padding: 1rem 1.4rem; align-content: center; }
+.demo__grid .tile__title { font-size: 1.6rem; }
+.demo__keys { font-size: 1.2rem; color: var(--text-dim); display: grid; gap: .3rem; }
+.demo__keys b { color: var(--accent); font-weight: 600; }
+.demo__hint { opacity: .7; }

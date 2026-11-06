@@ -1,0 +1,22 @@
+[Unit]
+Description=LivingroomOS Backend (FastAPI auf 127.0.0.1:8750)
+Documentation=file:///opt/livingroomos/ARCHITECTURE.md
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/livingroomos/backend
+# Der Programmcode unter /opt gehört root und ist nicht beschreibbar; kein Bytecode schreiben.
+Environment=PYTHONDONTWRITEBYTECODE=1
+# Die Konfiguration liegt im Benutzerverzeichnis, weil das Backend den Abschnitt "ui" zurückschreibt.
+Environment=LIVINGROOMOS_CONFIG=%h/.config/livingroomos/settings.json
+ExecStart=/opt/livingroomos/run.sh
+Restart=on-failure
+RestartSec=2
+TimeoutStopSec=15
+# Dateien neuer Prozesse sind privat. Weitere Härtung (ProtectSystem …): docs/SICHERHEIT.md, Abschnitt 6.
+# Erst nach einem Test mit Google Chrome aktivieren, weil Einschränkungen an die Apps vererbt werden.
+UMask=0077
+NoNewPrivileges=yes
+# Standard KillMode=control-group: Stoppt oder stürzt das Backend ab, endet auch die laufende App,
+# und der Launcher ist wieder sichtbar. Wer sie stattdessen weiterlaufen lassen und vom neuen Backend
+# übernehmen lassen will, setzt KillMode=process (siehe docs/SICHERHEIT.md).

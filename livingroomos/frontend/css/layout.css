@@ -1,0 +1,40 @@
+/* LivingroomOS – Seitenaufbau. Abstände berücksichtigen Overscan alter Fernseher. */
+
+body { --cols: 3; }
+body[data-tile-size="large"] { --cols: 2; }
+@media (max-width: 900px) { body { --cols: 2; } }
+@media (max-width: 560px) { body { --cols: 1; } }
+
+.shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 2.5vh;
+  height: 100vh;
+  padding: 4.5vh 5vw 3.5vh;
+}
+
+.topbar { display: flex; align-items: center; justify-content: space-between; }
+.topbar__right { display: flex; align-items: center; gap: 2rem; }
+
+.stage { min-height: 0; }
+
+/* Der Scrollbereich hat Innenabstand, damit vergrößerte Kacheln und der
+   Fokusring nicht abgeschnitten werden. */
+.view {
+  height: calc(100% + 3.2rem);
+  margin: -1.6rem;
+  padding: 1.6rem;
+  overflow-y: auto;
+  scrollbar-width: none;
+  scroll-padding: 1.6rem; /* fokussiertes Element rückt mit Abstand ins Bild */
+}
+.view::-webkit-scrollbar { display: none; }
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  gap: 2rem;
+}
+.tiles__item { aspect-ratio: 16 / 10; }
+
+.settings { display: grid; gap: 1.2rem; max-width: 60rem; }
