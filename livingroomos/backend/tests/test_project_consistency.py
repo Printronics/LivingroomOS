@@ -69,6 +69,13 @@ class ShippedConfigTests(unittest.TestCase):
         self.assertEqual(problems, [])
         self.assertGreaterEqual(len(apps), 1)
 
+    def test_invalid_category_value_does_not_crash_config_parsing(self) -> None:
+        apps, problems = parse_apps([
+            {"id": "example", "title": "Example", "command": ["{python}", "-c", "pass"], "category": []}
+        ])
+        self.assertEqual(problems, [])
+        self.assertEqual(apps["example"].category, "media")
+
     def test_every_browser_app_has_its_own_profile_and_wayland_flag(self) -> None:
         for app in self.store.apps:
             if app["command"][0] == "google-chrome-stable":
@@ -198,6 +205,20 @@ class DocumentationTests(unittest.TestCase):
 
 
 class SystemFilesTests(unittest.TestCase):
+    def test_polkit_rule_is_scoped_to_power_actions_for_service_user(self) -> None:
+        rule = (ROOT / "system" / "polkit" / "50-livingroomos-power.rules").read_text(encoding="utf-8")
+        self.assertIn('subject.user === "livingroomos"', rule)
+        for action in (
+            "org.freedesktop.login1.reboot",
+            "org.freedesktop.login1.reboot-multiple-sessions",
+            "org.freedesktop.login1.power-off",
+            "org.freedesktop.login1.power-off-multiple-sessions",
+        ):
+            with self.subTest(action=action):
+                self.assertIn(action, rule)
+        self.assertNotIn("suspend", rule)
+        self.assertNotIn("hibernate", rule)
+
     def test_json_policies_are_valid(self) -> None:
         policy_files = list((ROOT / "system" / "chrome").glob("*.json"))
         self.assertTrue(policy_files, "No Chrome policy JSON files found")
