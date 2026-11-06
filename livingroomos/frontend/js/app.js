@@ -404,6 +404,41 @@ function closeDialog() {
   nav.setScope(viewEl());
 }
 
+function showAbout() {
+  showDialog({
+    key: "about-livingroomos",
+    title: "Über LivingroomOS",
+    text: "LivingroomOS ist freie Software unter der GNU Affero General Public License Version 3 (AGPL-3.0). Der vollständige Lizenztext und der Quellcode sind über die folgenden Links erreichbar.",
+    actions: [
+      {
+        label: "AGPL-3.0 Lizenztext",
+        run: () => {
+          window.open(
+            "https://github.com/Printronics/LivingroomOS/blob/main/LICENSE",
+            "_blank",
+            "noopener,noreferrer"
+          );
+        }
+      },
+      {
+        label: "LivingroomOS Quellcode",
+        run: () => {
+          window.open(
+            "https://github.com/Printronics/LivingroomOS",
+            "_blank",
+            "noopener,noreferrer"
+          );
+        }
+      },
+      {
+        label: "Schließen",
+        run: closeDialog
+      }
+    ],
+    onBack: closeDialog
+  });
+}
+
 /* ---------------------------------------------------------------- Anwendungen */
 
 async function launchApp(app) {
