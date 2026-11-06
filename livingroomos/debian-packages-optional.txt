@@ -8,4 +8,5 @@ python3-httpx          # nur für die API-Tests (backend/tests/test_api.py)
 intel-media-va-driver  # Hardware-Videodekodierung auf Intel-NUCs (VA-API)
 mesa-va-drivers        # VA-API für AMD-Grafik
 vainfo                 # Diagnose der Videodekodierung
-unattended-upgrades    # automatische Sicherheitsupdates\nzram-tools             # komprimierter Swap; optional für Geräte mit wenig RAM\n
+unattended-upgrades    # automatische Sicherheitsupdates
+zram-tools             # komprimierter Swap; optional für Geräte mit wenig RAM
