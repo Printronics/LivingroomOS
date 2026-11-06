@@ -20,7 +20,7 @@ Zielsystem: **Debian 13 „trixie“ auf `amd64` / x86_64 (Intel/AMD)**. ARM wir
 | `systemd` | Dienste (Benutzer-Units) | auf Debian vorhanden |
 | `dbus-user-session` | startet `systemd --user` je Sitzung | ohne dieses Paket laufen die Benutzer-Units nicht |
 | `libpam-systemd` | logind-Sitzung | gibt dem Benutzer Zugriff auf GPU und Eingabegeräte |
-| `polkitd` | Autorisierung von Neustart und Herunterfahren | verwendet die Debian-/systemd-Standardrichtlinie; keine eigene LivingroomOS-Polkit-Regel vorhanden |
+| `polkitd` | Autorisierung von Neustart und Herunterfahren | lädt die mitgelieferte Regel `system/polkit/50-livingroomos-power.rules` aus `/etc/polkit-1/rules.d/` |
 | `pipewire` | Audio | |
 | `pipewire-pulse` | Audio-Kompatibilität | Google Chrome spricht PulseAudio |
 | `wireplumber` | PipeWire-Sitzungsverwaltung | |
