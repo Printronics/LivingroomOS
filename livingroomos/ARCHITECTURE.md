@@ -114,7 +114,8 @@ The frontend communicates exclusively with `http://127.0.0.1:8750`. Commands use
 | `GET /api/v1/apps/status` | `state`, `app_id`, `pid`, `last_exit` | |
 | `POST /api/v1/apps/{id}/launch` | Start an application | 202; 404 unknown; 409 `busy`; 422 `not_installed` |
 | `POST /api/v1/apps/stop` | Stop the active application | |
-| `POST /api/v1/apps/{id}/stop` | Stop only the specified application | 409 `not_running` if it is not running |\n| `POST /api/v1/system/power/restart`, `POST /api/v1/system/power/shutdown` | Request one of the two fixed system power actions | 202 accepted; unsupported actions return 404 |
+| `POST /api/v1/apps/{id}/stop` | Stop only the specified application | 409 `not_running` if it is not running |
+| `POST /api/v1/system/power/restart`, `POST /api/v1/system/power/shutdown` | Request one of the two fixed system power actions | 202 accepted; unsupported actions return 404 |
 | `GET /api/v1/settings`, `PATCH /api/v1/settings` | Read and update interface settings (`ui`) | 422 for unknown keys |
 
 Rules:
@@ -248,4 +249,5 @@ Unchanged from the original design: the single-foreground-application principle,
 - Run applications as transient systemd units with `MemoryMax` and sandboxing. Only the runner in `ProcessManager` needs to change.
 - Use SSE for status events instead of polling.
 - Add platform profiles (Google Chrome flags per device) after measurements on x86_64 PCs.
-- Implement audio (volume control) as a separate, small service.\n- Extend power management only if needed (for example, suspend); restart and shutdown are already implemented.
+- Implement audio (volume control) as a separate, small service.
+- Extend power management only if needed (for example, suspend); restart and shutdown are already implemented.
