@@ -208,6 +208,8 @@ class SystemFilesTests(unittest.TestCase):
     def test_polkit_rule_is_scoped_to_power_actions_for_service_user(self) -> None:
         rule = (ROOT / "system" / "polkit" / "50-livingroomos-power.rules").read_text(encoding="utf-8")
         self.assertIn('subject.user === "livingroomos"', rule)
+        self.assertIn("return polkit.Result.YES", rule)
+        self.assertIn("return polkit.Result.NO", rule, "Other users must be explicitly denied")
         for action in (
             "org.freedesktop.login1.reboot",
             "org.freedesktop.login1.reboot-multiple-sessions",
