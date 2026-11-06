@@ -1,144 +1,109 @@
 # LivingroomOS
 
-**A lightweight, keyboard-friendly living-room interface for Debian 13 (x86_64).**
+LivingroomOS is a Linux-based operating system environment designed for living rooms and media center setups. Built on Debian 13, it provides a TV-oriented interface for accessing and managing web applications and media services.
 
-LivingroomOS is a minimal living-room interface designed for TV screens and dedicated living-room PCs. It provides an application launcher, system status information, configurable settings, and basic system power controls.
-
-The project targets Debian 13 (Trixie) on x86_64 / amd64 systems exclusively.
+**Current version:** 0.6.0  
+**Project status:** In development  
+**Target platform:** Debian 13 – x86_64 (AMD64)
 
 ## Features
 
-- TV-friendly application launcher
-- Keyboard-oriented user interface
-- HTML, CSS, and vanilla JavaScript frontend
-- Python backend using FastAPI
-- Local-only backend API
-- Google Chrome Stable as the supported browser
-- Wayland session using labwc
-- greetd-based automatic session startup
-- System status information
-- Settings interface
-- Restart and shutdown controls
-- Debug section for development and test applications
-- systemd integration
-- Restricted system power operations
+- TV-oriented user interface
+- Centralized application management
+- Integration of web-based applications
+- Configurable application settings
+- System controls and power management
+- Security-focused system configuration
+- Recovery and maintenance functionality
 
-## Platform support
+## Requirements
 
-| Component | Supported configuration |
-|---|---|
-| Operating system | Debian 13 (Trixie) |
-| Architecture | x86_64 / amd64 |
-| Display server | Wayland |
-| Window manager | labwc |
-| Browser | Google Chrome Stable |
-| Login manager | greetd |
-| Backend | Python 3, FastAPI, Uvicorn |
-| Frontend | HTML, CSS, JavaScript |
+The intended target environment includes:
 
-ARM and ARM64 systems are not supported.
+- Debian 13 (64-bit, AMD64)
+- Python 3.11 or newer
+- A compatible graphical environment
+- Network connectivity for web applications and updates
+- Suitable input devices, such as a remote control, keyboard, or mouse
 
-## Repository structure
+For detailed dependency information, see [System Dependencies](docs/SYSTEMABHAENGIGKEITEN.md).
 
-The application and its documentation are located in the `livingroomos/` subdirectory.
+## Installation
+
+Installation instructions are available in the following documents:
+
+- [Debian Installation Guide](DEBIANINSTALL.md)
+- [Installation Overview](INSTALL.md)
+
+Please review the requirements and instructions before installing LivingroomOS on a target system.
+
+## Project Structure
 
 ```text
 LivingroomOS/
 ├── README.md
-└── livingroomos/
-    ├── README.md
-    ├── INSTALL.md
-    ├── DEBIANINSTALL.md
-    ├── ARCHITECTURE.md
-    ├── CHANGELOG.md
-    ├── backend/
-    ├── frontend/
-    ├── config/
-    ├── system/
-    ├── tools/
-    ├── tests/
-    ├── debian-packages.txt
-    └── requirements.txt
+├── INSTALL.md
+├── DEBIANINSTALL.md
+├── ARCHITECTURE.md
+├── CHANGELOG.md
+├── backend/
+│   ├── config/
+│   └── tests/
+├── docs/
+│   ├── SICHERHEIT.md
+│   └── SYSTEMABHAENGIGKEITEN.md
+├── system/
+└── ...
 ```
 
-The exact contents may vary between development versions.
+This is a simplified overview of the main project directories.
 
-## Installation
+## Running Tests
 
-Installation consists of two steps. Follow the guides in this order:
+The automated test suite can be run from the `livingroomos/` directory:
 
-1. [Debian 13 base installation](livingroomos/DEBIANINSTALL.md) – install and prepare a minimal Debian 13 system.
-2. [LivingroomOS installation](livingroomos/INSTALL.md) – deploy and configure LivingroomOS.
+```bash
+python3 -B -m unittest discover -s backend/tests -v
+```
 
-The application documentation is located in the [`livingroomos/`](livingroomos/) directory.
+The tests cover selected aspects of the project, including project structure, configuration files, and system components.
 
-## Architecture
+A successful test run does not necessarily mean that all features have been verified on the intended target hardware.
 
-LivingroomOS consists of three main layers:
+## Documentation
 
-1. **Frontend:** Displays the launcher, settings, application entries, and system information.
-2. **Backend:** Provides a local HTTP API for application data, settings, system status, and power operations.
-3. **System integration:** Connects the interface to Debian system services and starts the graphical session.
+Additional technical information is available in the following documents:
 
-The backend is intended to listen only on `127.0.0.1`, using port `8750` by default.
+- [Architecture](ARCHITECTURE.md)
+- [Changelog](CHANGELOG.md)
+- [Security Documentation](docs/SICHERHEIT.md)
+- [System Dependencies](docs/SYSTEMABHAENGIGKEITEN.md)
 
-See [ARCHITECTURE.md](livingroomos/ARCHITECTURE.md) for further details.
+## Development Status
 
-## Security
+LivingroomOS is currently under active development and testing.
 
-LivingroomOS is designed to limit system access:
+Before a stable release, the following areas still require verification:
 
-- The backend listens on localhost rather than exposing its API to the network.
-- State-changing API requests require the LivingroomOS request header.
-- Power operations use fixed system commands.
-- Polkit rules restrict permitted power operations to the intended service account.
-- Executable files and configuration are expected to have appropriate ownership and permissions.
-
-Do not expose the backend port to an untrusted network.
+- Complete testing on the intended target hardware
+- Automatic startup and login
+- Display and browser integration
+- Application navigation and settings persistence
+- Power management
+- Recovery functionality
+- Final installation and security testing
 
 ## License
 
 LivingroomOS is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
 
-The license information is available through the [LivingroomOS repository on GitHub](https://github.com/Printronics/LivingroomOS).
+The license text is provided in the repository:
 
-Third-party software and components remain subject to their own licenses and terms. In particular, Google Chrome is distributed under Google's own terms and is not relicensed under the project's AGPL license.
+- [Root LICENSE](../LICENSE)
+- [Application LICENSE](LICENSE)
 
-## Development and testing
+See the license files for the complete terms and conditions.
 
-For development, work from the application directory:
+## Disclaimer
 
-```bash
-cd livingroomos
-```
-
-Run the test suite with:
-
-```bash
-python3 -B -m unittest discover -s tests -v
-```
-
-Some system integration tests require a properly configured Debian environment. File ownership and executable permission checks may behave differently when tests are run as root or inside containers.
-
-## Testing status
-
-LivingroomOS is intended for internal testing and development.
-
-Before using it as a daily living-room system, verify:
-
-- Automatic startup and login
-- Display resolution and scaling
-- Google Chrome launch behavior
-- Application navigation
-- Settings persistence
-- Restart and shutdown behavior
-- Recovery from backend or browser failures
-- Compatibility with the target hardware
-
-System power controls should be tested carefully, preferably on a dedicated test machine.
-
-## Project goals
-
-LivingroomOS aims to provide a small, maintainable, and understandable living-room interface without the overhead of a traditional desktop environment.
-
-The focus is on simplicity, predictable system behavior, and compatibility with Debian 13 on x86_64 hardware.
+LivingroomOS is currently a development project and is not yet considered a finished product. Features, configurations, and installation procedures may change as development continues.
