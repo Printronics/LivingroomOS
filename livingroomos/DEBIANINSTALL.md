@@ -256,4 +256,4 @@ The SSH server allows remote access to the machine. Make sure the regular user h
 
 For additional security, SSH key authentication is recommended. Once key-based access has been tested successfully, password-based SSH authentication can be disabled if appropriate.
 
-Do not disable all administrative access before verifying that another working administration method is available. 
+Do not disable all administrative access before verifying that another working administration method is available.
