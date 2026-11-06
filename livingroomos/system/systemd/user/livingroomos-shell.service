@@ -7,7 +7,11 @@ After=livingroomos-backend.service
 [Service]
 Type=simple
 TimeoutStartSec=90
+# Chrome benötigt beschreibbare, explizite XDG-Verzeichnisse für Konfiguration und Cache.
+Environment=XDG_CONFIG_HOME=%h/.local/share/livingroomos/chrome-config
+Environment=XDG_CACHE_HOME=%h/.local/share/livingroomos/chrome-cache
 ExecStartPre=/opt/livingroomos/system/bin/livingroomosctl wait 60
+ExecStartPre=/usr/bin/install -d -m 0700 %h/.local/share/livingroomos/chrome-config %h/.local/share/livingroomos/chrome-cache
 ExecStartPre=/usr/bin/install -d -m 0700 %h/.local/share/livingroomos %h/.local/share/livingroomos/profiles %h/.local/share/livingroomos/profiles/launcher
 ExecStart=/usr/bin/google-chrome-stable --ozone-platform=wayland --kiosk --app=http://127.0.0.1:8750/ --user-data-dir=%h/.local/share/livingroomos/profiles/launcher --no-first-run --noerrdialogs --disable-infobars --password-store=basic
 Restart=on-failure
