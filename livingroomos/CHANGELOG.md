@@ -37,7 +37,7 @@ Standalone, installable project directory containing documentation, system files
 - `INSTALL.md`: complete installation on Debian 13 (amd64, x86_64), verification, troubleshooting, updates, and removal.
 - `ARCHITECTURE.md`: description of the implemented architecture and justified differences from the initial design.
 - `CHANGELOG.md`: this file.
-- `docs/SYSTEM_DEPENDENCIES.md`: all Debian packages, kernel and Python requirements, directories, permissions, and x86_64 system details.
+- `docs/SYSTEMABHAENGIGKEITEN.md`: all Debian packages, kernel and Python requirements, directories, permissions, and x86_64 system details.
 - `debian-packages.txt`, `debian-packages-optional.txt`: machine-readable package lists containing packages from the Debian archive only.
 - `requirements.txt`, `requirements-dev.txt`: Python dependencies for runtime and tests, each with an explanation.
 - `backend/version.py`: single source of the version number, used by `main.py` and the system status endpoint.
@@ -78,7 +78,7 @@ Secure process management.
 
 ### Added
 
-- `docs/SECURITY.md`: security concept (security objectives, threat model, measures, permissions, hardening, residual risks).
+- `docs/SICHERHEIT.md`: security concept (security objectives, threat model, measures, permissions, hardening, residual risks).
 - `backend/tests/test_process_management.py`: 22 tests using real processes.
 - `POST /api/v1/apps/{id}/stop`: stops only the specified application.
 
