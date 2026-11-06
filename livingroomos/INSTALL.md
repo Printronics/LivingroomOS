@@ -409,11 +409,13 @@ The greetd configuration is installed separately in Section 11. Reloading the sy
 
 ## 13. Configure power management permissions
 
-The backend requests restart and shutdown through fixed `systemctl reboot` and `systemctl poweroff` commands. Authorization is handled by Debian's systemd-logind and Polkit policy for the active `livingroomos` session.
+The backend requests restart and shutdown through fixed `systemctl reboot` and `systemctl poweroff` commands. Authorization is handled by Debian's systemd-logind and Polkit policy.
+
+The standard systemd policy permits reboot and power-off from an active local session. This is not a LivingroomOS-specific permission and is not exclusive to the `livingroomos` account. The dedicated service account is the active user during the configured greetd session.
 
 **Important:** The current repository does not contain a file under `system/polkit/`. Therefore there is no project-specific Polkit rule to copy or install. Do not follow instructions from older versions of this guide that imply such a rule is included, and do not add a broad rule granting general administrator or systemd-management permissions.
 
-Verify the actual authorization behavior on a dedicated test machine while logged in through the configured greetd session. If restart or shutdown is denied or requires an administrator password, treat power controls as not yet configured and do not consider that feature release-ready.
+Verify restart and shutdown on a dedicated test machine while logged in through the configured greetd session. The security documentation describes this limitation; do not claim that these actions are restricted exclusively to the service account.
 
 ## 14. Enable automatic startup
 
