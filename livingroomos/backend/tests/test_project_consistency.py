@@ -92,7 +92,7 @@ class ShippedConfigTests(unittest.TestCase):
 
 
 class PortabilityTests(unittest.TestCase):
-    def test_no_hardcoded_library_paths_or_architecture_names_in_code_strings(self) -> None:
+    def test_production_code_strings_do_not_name_unsupported_architectures(self) -> None:
         offenders = []
         for path in production_files():
             for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
