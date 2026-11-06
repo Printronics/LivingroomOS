@@ -109,7 +109,7 @@ The frontend communicates exclusively with `http://127.0.0.1:8750`. Commands use
 
 | Method and path | Purpose | Special responses |
 |---|---|---|
-| `GET /api/v1/health` | Readiness check (waits for the shell unit) | |
+| `GET /api/v1/health` | Backend HTTP readiness check; the shell unit polls it before starting Chrome | |
 | `GET /api/v1/system/status` | Version, uptime, architecture, Python version, `config_problems`, application status | |
 | `GET /api/v1/apps` | Application list (without commands) and status | |
 | `GET /api/v1/apps/status` | `state`, `app_id`, `pid`, `last_exit` | |
