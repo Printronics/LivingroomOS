@@ -193,18 +193,17 @@ sudo find /opt/livingroomos -type f -exec chmod 644 {} \;
 
 Make shell scripts executable:
 
-\`\`\`bash
+```bash
 sudo find /opt/livingroomos -type f -name '*.sh' -exec chmod 755 {} \;
-\`\`\`
+```
 
 The two extensionless helper programs are also started directly by greetd and labwc. Make them executable explicitly:
 
-\`\`\`bash
+```bash
 sudo chmod 755 \
     /opt/livingroomos/system/bin/livingroomos-session \
     /opt/livingroomos/system/bin/livingroomosctl
-\`\`\`
-
+```
 The application directory must remain protected against modification by the service account.
 
 Do not make `/opt/livingroomos` writable by the `livingroomos` user.
