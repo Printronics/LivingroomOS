@@ -17,6 +17,7 @@ import os
 import platform
 import re
 import shutil
+import signal
 import sys
 from pathlib import Path
 
@@ -75,6 +76,7 @@ def check(config_path: Path) -> None:
     kernel = kernel_version()
     record(kernel >= MIN_KERNEL, "Linux-Kernel ≥ 5.3 (pidfd)", platform.release())
     record(hasattr(os, "pidfd_open"), "os.pidfd_open verfügbar")
+    record(hasattr(signal, "pidfd_send_signal"), "signal.pidfd_send_signal verfügbar")
     record(Path("/proc/self/stat").exists(), "/proc eingehängt")
     try:
         import fcntl  # noqa: F401
@@ -98,7 +100,7 @@ def check(config_path: Path) -> None:
         path = find_binary(binary) or shutil.which(binary)
         record(path is not None, f"Programm {binary}", path or f"apt install {package}", required=required)
 
-    record(Path("/run/systemd/system").exists(), "systemd läuft", required=False)
+    record(Path("/run/systemd/system").exists(), "systemd läuft")
     runtime = os.environ.get("XDG_RUNTIME_DIR")
     record(bool(runtime), "XDG_RUNTIME_DIR gesetzt", runtime or "nur in einer Anmeldesitzung vorhanden", required=False)
     record(bool(os.environ.get("WAYLAND_DISPLAY")), "WAYLAND_DISPLAY gesetzt", os.environ.get("WAYLAND_DISPLAY", "nur in der labwc-Sitzung vorhanden"), required=False)
