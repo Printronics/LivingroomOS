@@ -417,7 +417,7 @@ sudo install -o root -g root -m 644 \
     /etc/polkit-1/rules.d/50-livingroomos-power.rules
 ```
 
-The rule grants only the dedicated `livingroomos` account permission for the four explicit systemd-logind actions covering reboot and power-off, including the multiple-session variants. It does not grant general administrator privileges or permission for suspend, hibernate, or unrelated Polkit actions. Polkit monitors its rules directories and reloads rules when files change; a daemon restart is normally unnecessary.
+The rule grants the dedicated `livingroomos` account and the root administrator permission for the four explicit systemd-logind actions covering reboot and power-off, including the multiple-session variants. Every other non-root account is explicitly denied these actions. The rule does not grant general administrator privileges or permission for suspend, hibernate, or unrelated Polkit actions. Polkit monitors its rules directories and reloads rules when files change; a daemon restart is normally unnecessary.
 
 Because the backend and launched applications share the `livingroomos` UID, any process that gains code execution as that account can also request these power actions. Keep the account dedicated to LivingroomOS and test restart and shutdown on the target Debian 13 machine.
 
