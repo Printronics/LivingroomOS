@@ -141,9 +141,9 @@ Das Backend mappt diese zwei Werte auf feste Argumentlisten (`systemctl reboot` 
 Es gibt keine freie Befehls-, Parameter- oder Shell-Eingabe. Andere Aktionsnamen werden mit HTTP 404 abgewiesen.
 
 **Berechtigungsgrenze:** Das Repository enthält `system/polkit/50-livingroomos-power.rules`. Die Regel gibt
-ausschließlich dem Benutzer `livingroomos` die Berechtigungen `org.freedesktop.login1.reboot`,
+dem Benutzer `livingroomos` sowie `root` die Berechtigungen `org.freedesktop.login1.reboot`,
 `org.freedesktop.login1.reboot-multiple-sessions`, `org.freedesktop.login1.power-off` und
-`org.freedesktop.login1.power-off-multiple-sessions`. Andere Benutzer und andere Aktionen werden von dieser
+`org.freedesktop.login1.power-off-multiple-sessions`. Alle anderen nicht privilegierten Benutzer und andere Aktionen werden von dieser
 Regel nicht freigegeben und unterliegen weiterhin der systemweiten Polkit-Richtlinie.
 
 Die Regel muss bei der Installation root-eigen nach `/etc/polkit-1/rules.d/50-livingroomos-power.rules`
