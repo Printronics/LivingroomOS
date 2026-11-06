@@ -18,7 +18,7 @@ The version number is defined in exactly one place: `backend/version.py`.
 - Replaced the default applications with neutral, editable web application examples; no third-party logos, graphics, or provider assets are embedded.
 - Reorganized the settings interface into General, System, and Debug sections; added additional display options and reduced-motion support.
 - Removed test applications from the main launcher and moved them to the Debug tab.
-- Added restart and shutdown through fixed backend actions and a bundled Polkit rule scoped to the dedicated LivingroomOS service user.
+- Added restart and shutdown through fixed backend actions and a bundled Polkit rule allowing the dedicated LivingroomOS service user and root while denying other users.
 - Updated the installation, dependency, security, and architecture documentation.
 
 ### Verification
