@@ -20,6 +20,10 @@ The version number is defined in exactly one place: `backend/version.py`.
 - Removed test applications from the main launcher and moved them to the Debug tab.
 - Added restart and shutdown through fixed backend actions and a bundled Polkit rule allowing the dedicated LivingroomOS service user and root while denying other users.
 - Updated the installation, dependency, security, and architecture documentation.
+- Fixed the labwc XML comment so the supplied configuration parses correctly.
+- Documented and configured the greetd/`getty@tty1` conflict so greetd can own virtual terminal 1.
+- Configured dedicated writable Chrome XDG configuration and cache directories in the launcher unit; the unit creates them before starting Chrome.
+- Updated the installation guide to deploy the corrected `main` branch rather than the older `v0.6` tag, and included the Mesa DRI driver package.
 
 ### Verification
 
