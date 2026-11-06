@@ -1,162 +1,156 @@
 # LivingroomOS
 
-LivingroomOS macht aus einem Debian-13-Rechner für x86_64-PCs einen Fernseher-Launcher: Der
-Rechner bootet ohne Desktop direkt in eine große, mit Fernbedienung oder Tastatur bedienbare Oberfläche. konfigurierbare Web-Apps und lokale Mediatheken laufen als getrennte Anwendungen daneben, immer nur eine gleichzeitig.
+**A lightweight, keyboard-friendly living-room interface for Debian 13 (x86_64).**
 
-- **Frontend:** HTML5, CSS3, Vanilla-JavaScript (ES-Module), kein Framework, kein Build-Schritt
-- **Backend:** Python 3 mit FastAPI und Uvicorn, nur auf `127.0.0.1`
-- **Fenster:** Compositor `labwc` (Wayland), Anmeldung über `greetd`, Browser `google-chrome-stable`, Dienste über `systemd`
+LivingroomOS is a minimal desktop environment designed for TV screens and living-room PCs. It provides a simple application launcher, system status information, configurable settings, and basic system power controls.
 
-> **Status: Prototyp, Version 0.6.0.** Backend-Logik, Prozessmanagement und Navigation sind mit echten Prozessen und
-> einem echten Browser getestet. Die Systemdateien in `system/` (greetd, labwc, systemd) und die Wiedergabe in
-> Streaming-Anbieter sind **noch nicht auf echter Hardware geprüft**. Details: Abschnitt „Teststatus“.
+The project is designed around Debian 13 and targets x86_64 systems exclusively.
 
-## Schnellstart zum Ausprobieren (Entwicklung)
+## Features
 
-Voraussetzung: Linux mit Python ≥ 3.11 und den Bibliotheken `fastapi` und `uvicorn`. Auf Debian 13 am einfachsten:
+- TV-friendly application launcher
+- Simple interface built with HTML, CSS, and vanilla JavaScript
+- Python backend using FastAPI
+- Local-only backend API
+- Google Chrome Stable as the supported browser
+- Wayland session using labwc
+- greetd-based automatic session startup
+- System status information
+- Settings interface for user preferences
+- System restart and shutdown controls
+- Debug section for development and test applications
+- systemd integration
+- Restricted system power operations
+
+## Platform support
+
+| Component        | Supported configuration    |
+| ---------------- | -------------------------- |
+| Operating system | Debian 13 (Trixie)         |
+| Architecture     | x86_64 / amd64             |
+| Display server   | Wayland                    |
+| Window manager   | labwc                      |
+| Browser          | Google Chrome Stable       |
+| Login manager    | greetd                     |
+| Backend          | Python 3, FastAPI, Uvicorn |
+| Frontend         | HTML, CSS, JavaScript      |
+
+ARM and ARM64 systems are not supported.
+
+## Project structure
+
+```text
+LivingroomOS/
+├── backend/
+│   └── main.py
+├── frontend/
+│   ├── index.html
+│   ├── css/
+│   └── js/
+├── config/
+├── system/
+│   ├── bin/
+│   ├── labwc/
+│   ├── greetd/
+│   ├── systemd/
+│   └── polkit/
+├── tools/
+│   └── check_system.py
+├── tests/
+├── debian-packages.txt
+├── run.sh
+├── README.md
+├── INSTALL.md
+├── DebianInstall.md
+├── ARCHITECTURE.md
+└── CHANGELOG.md
+```
+
+The exact contents may vary between development versions.
+
+## Architecture
+
+LivingroomOS consists of three main layers:
+
+1. **Frontend:** Displays the launcher, settings, application entries, and system information.
+2. **Backend:** Provides a local HTTP API for application data, settings, system status, and power operations.
+3. **System integration:** Starts the graphical session and connects the interface to Debian system services.
+
+The backend is intended to listen only on `127.0.0.1`, using port `8750` by default.
+
+## Security
+
+LivingroomOS is designed to keep system access limited:
+
+- The backend listens on localhost rather than exposing its API to the network.
+- State-changing API requests require the LivingroomOS request header.
+- Power operations use fixed system commands.
+- Polkit rules restrict permitted power operations to the dedicated LivingroomOS service account.
+- Executable files and configuration are expected to have appropriate ownership and permissions.
+
+Do not expose the backend port to an untrusted network.
+
+## Installation
+
+For a complete installation guide, see:
+
+- [DEBIANINSTALL.md](DebianInstall.md) — Installing and preparing the minimal Debian 13 base system.
+- [INSTALL.md](INSTALL.md) — Installing and configuring LivingroomOS after Debian is ready.
+
+Follow the Debian installation guide first.
+
+## Development
+
+Run the backend manually during development:
 
 ```bash
-sudo apt install python3 python3-fastapi python3-uvicorn
+cd /opt/livingroomos
 ./run.sh
 ```
 
-Danach im Browser `http://127.0.0.1:8750` öffnen. Navigation mit Pfeiltasten, Enter und Escape. Die Testprozesse „Demo-App“ und „Absturz-Test“ befinden sich im Einstellungsbereich unter „Debug“.
+The default local address is:
 
-Alternativ mit virtueller Umgebung (Pakete von PyPI):
-
-```bash
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-./run.sh        # nutzt .venv automatisch, falls vorhanden
+```text
+http://127.0.0.1:8750
 ```
 
-`run.sh` startet nur das Backend, schreibt nichts außerhalb des Projektordners und nutzt Port 8750
-(`LIVINGROOMOS_PORT=9000 ./run.sh` ändert ihn). Browserprofile und Logs der Apps landen unter
-`~/.local/share/livingroomos/`.
+For development and internal testing, use a regular non-root account wherever possible.
 
-Die vollständige Einrichtung als Fernseher-Appliance (Autologin, Kiosk, Dienste) steht in [INSTALL.md](INSTALL.md).
-
-## Bedienung
-
-| Taste | Wirkung |
-| --- | --- |
-| Pfeiltasten | Fokus bewegen (räumlich, nächstes Element in Pfeilrichtung) |
-| Enter, Leertaste | Öffnen / Bestätigen |
-| Escape, Backspace, Zurück-Taste der Fernbedienung | Zurück, Dialog schließen |
-| Home-Taste der Fernbedienung | zum Launcher: beendet die laufende App (im Kiosk über labwc, siehe `system/labwc/rc.xml`) |
-| Tab | wie „nächstes Element“ (nicht nötig) |
-
-Eine Maus wird nicht gebraucht. Neue Fernbedienungen werden in [frontend/js/remote.js](frontend/js/remote.js) mit einer
-Zeile zugeordnet; die Seite `frontend/dev/navigation-demo.html` zeigt, welche Tastencodes ein Gerät sendet.
-
-## Tests
+Run the test suite with:
 
 ```bash
-cd backend
 python3 -B -m unittest discover -s tests -v
 ```
 
-| Datei | Prüft | Braucht |
-| --- | --- | --- |
-| `test_process_management.py` | Start, Stopp, Absturz, Doppelstart, Rechteprüfungen, Übernahme nach Backend-Absturz | Standardbibliothek |
-| `test_settings_store.py` | Laden, Fehlermeldungen, atomares und paralleles Speichern | Standardbibliothek |
-| `test_livingroomosctl.py` | Tastenkürzel-Werkzeug gegen Testserver | Standardbibliothek |
-| `test_project_consistency.py` | Konfiguration, Abhängigkeiten, x86_64-Zielarchitektur, Dokumentation | Standardbibliothek |
-| `test_api.py` | HTTP-Schnittstelle, Sicherheitsheader, Fehlerformat | `fastapi`, `httpx` (sonst übersprungen) |
+Some system integration tests require a properly configured Debian environment. File ownership and executable permission checks may also behave differently when tests are run as root or inside containers.
 
-Für `test_api.py`: `sudo apt install python3-httpx` oder `pip install -r requirements-dev.txt`.
-Ohne Installation prüft `python3 tools/check_system.py`, was auf dem System fehlt.
+## Internal testing status
 
-## Projektstruktur
+LivingroomOS is intended for internal testing and development.
 
-```
-livingroomos/
-├── README.md  INSTALL.md  ARCHITECTURE.md  CHANGELOG.md
-├── requirements.txt            Python-Abhängigkeiten (Laufzeit)
-├── requirements-dev.txt        zusätzlich für Tests
-├── debian-packages.txt         Debian-Pflichtpakete
-├── debian-packages-optional.txt
-├── run.sh                      startet das Backend
-├── backend/
-│   ├── main.py                 App, Lifespan, Sicherheits-Middleware, Frontend ausliefern
-│   ├── version.py              einzige Quelle der Versionsnummer
-│   ├── api/                    apps.py, system.py, settings.py (dünne REST-Router)
-│   ├── services/               process_manager.py, app_launcher.py, settings_store.py
-│   ├── config/settings.json    Apps, Serverwerte, Oberflächeneinstellungen
-│   └── tests/
-├── frontend/
-│   ├── index.html  css/  js/   app.js, navigation.js, remote.js, api.js
-│   └── dev/                    Demo und Tastentest für die Navigation (ohne Backend nutzbar)
-├── system/                     Dateien für den Fernseher-Betrieb (nur Dateien, kein Code)
-│   ├── greetd/  labwc/  systemd/user/  chrome/  polkit/  bin/
-├── tools/check_system.py       Systemprüfung (nur x86_64)
-└── docs/                       SICHERHEIT.md, SYSTEMABHAENGIGKEITEN.md
-```
+Before using it as a daily living-room system, verify:
 
-## Konfiguration
+- Startup and automatic login
+- Display resolution and scaling
+- Google Chrome launch behavior
+- Application navigation
+- Settings persistence
+- Restart and shutdown behavior
+- Recovery from backend or browser failures
+- Compatibility with the target hardware
 
-Alle Apps stehen in `backend/config/settings.json` (im Fernseher-Betrieb: `~/.config/livingroomos/settings.json`).
-Das Frontend sendet nur die App-ID; Programm und Parameter kommen ausschließlich aus dieser Datei.
+System power controls should be tested carefully, preferably on a dedicated test machine.
 
-```json
-{
-  "id": "webapp-one",
-  "title": "Streaming-App 1",
-  "command": ["google-chrome-stable", "--app=https://example.com/", "--user-data-dir={profile_dir}",
-              "--ozone-platform=wayland", "--start-fullscreen"]
-}
-```
+## License and third-party components
 
-Regeln (werden beim Laden geprüft, ungültige Einträge übersprungen und in `/api/v1/system/status` unter
-`config_problems` gemeldet):
+LivingroomOS is intended to use original project code and assets wherever possible.
 
-- `command` ist eine Liste, nie ein Text. Es gibt keine Shell.
-- Erlaubte Platzhalter: `{python}` (der Python-Interpreter des Backends) und `{profile_dir}` (eigenes Profil dieser App).
-- Browser müssen `{profile_dir}` verwenden, jede App bekommt ein eigenes Profil.
-- Programme werden nur in `server.trusted_bin_dirs` gesucht und müssen `root` oder dem Dienstbenutzer gehören und
-  dürfen für Gruppe und Andere nicht beschreibbar sein.
-- Verboten sind unter anderem `--no-sandbox`, `--remote-debugging-*`, `--disable-web-security`; ebenso `LD_*`-Variablen.
+The project depends on external software such as Debian, Python, FastAPI, Uvicorn, labwc, greetd, systemd, Polkit, and Google Chrome. These components remain subject to their respective licenses and terms.
 
-Alle Gründe und Berechtigungen: [docs/SICHERHEIT.md](docs/SICHERHEIT.md).
+Any third-party assets or dependencies added in the future must be reviewed for licensing and redistribution requirements.
 
-## Einstellungen und Systemaktionen
+## Project goals
 
-Die Einstellungen sind in die Bereiche **Allgemein**, **System** und **Debug** gegliedert. Allgemein enthält Uhrzeitformat,
-Uhranzeige, Kachelgröße, App-Beschreibungen und reduzierte Animationen. System enthält die Bestätigung vor Power-Aktionen
-sowie **PC neu starten** und **PC herunterfahren**. Die beiden eingebauten Testprozesse erscheinen ausschließlich im
-Debug-Bereich. Power-Aktionen sind serverseitig auf die beiden festen systemd-Befehle begrenzt; die Polkit-Regel erteilt
-nur dem dedizierten Dienstkonto die nötige Berechtigung.
+LivingroomOS aims to provide a small, maintainable, and understandable living-room interface without the overhead of a traditional desktop environment.
 
-## HTTP-Schnittstelle
-
-Nur `127.0.0.1`; schreibende Aufrufe brauchen den Header `X-LivingroomOS: 1`. Fehler haben das Format
-`{"error": {"code": "...", "message": "..."}}`.
-
-| Methode und Pfad | Zweck |
-| --- | --- |
-| `GET /api/v1/health` | Bereitschaft |
-| `GET /api/v1/system/status` | Version, Laufzeit, Architektur, Konfigurationsprobleme, App-Status |
-| `GET /api/v1/apps` | App-Liste (ohne Befehle) und Status |
-| `GET /api/v1/apps/status` | Status: `state`, `app_id`, `pid`, `last_exit` |
-| `POST /api/v1/apps/{id}/launch` | App starten (202; 409 wenn eine andere läuft) |
-| `POST /api/v1/apps/stop` | laufende App beenden |
-| `POST /api/v1/apps/{id}/stop` | nur diese App beenden (409, wenn sie nicht läuft) |
-| `GET /api/v1/settings`, `PATCH /api/v1/settings` | Oberflächeneinstellungen (`ui`) |\n| `POST /api/v1/system/power/restart` | kontrollierter Neustart |\n| `POST /api/v1/system/power/shutdown` | kontrolliertes Herunterfahren |
-
-## Teststatus
-
-| Bereich | Stand |
-| --- | --- |
-| Prozessmanagement, Einstellungen, Konfigurationsprüfung, `livingroomosctl` | automatisch getestet, echte Prozesse |
-| Oberfläche und Navigation | im echten Google Chrome getestet (1920×1080), 41 + 39 Prüfungen in der Entwicklung |
-| HTTP-Schnittstelle (`main.py`, `api/*.py`) | Tests geschrieben (`test_api.py`), in der Entwicklungsumgebung **nicht ausgeführt**, weil dort kein `fastapi` installierbar war. Bitte nach der Installation einmal ausführen. |
-| `system/` (greetd, labwc, systemd, Google Chrome-Richtlinien) | **ungetestet**, nach Dokumentation der Programme geschrieben |
-| Streaming-Anbieter (Widevine), Hardware-Videodekodierung, ARM | **nicht unterstützt** |
-
-## Dokumente
-
-- [INSTALL.md](INSTALL.md) – Debian-13-Installation Schritt für Schritt
-- [ARCHITECTURE.md](ARCHITECTURE.md) – Aufbau, Entscheidungen und Abweichungen vom ursprünglichen Entwurf
-- [CHANGELOG.md](CHANGELOG.md) – alle Änderungen
-- [docs/SICHERHEIT.md](docs/SICHERHEIT.md) – Sicherheitskonzept, Berechtigungen
-- [docs/SYSTEMABHAENGIGKEITEN.md](docs/SYSTEMABHAENGIGKEITEN.md) – Debian-Pakete, Kernel, Verzeichnisse
+The focus is on simplicity, predictable system behavior, and compatibility with Debian 13 on x86_64 hardware.
