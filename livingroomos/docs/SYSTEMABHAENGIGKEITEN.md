@@ -34,14 +34,14 @@ Zielsystem: **Debian 13 „trixie“ auf `amd64` / x86_64 (Intel/AMD)**. ARM wir
 | --- | --- |
 | `unzip` | nur zum Entpacken des Projektarchivs `livingroomos.zip` |
 | `wlrctl` | Fokus nach dem Ende einer App aktiv zum Launcher zurückholen (`server.return_to_launcher_command`). Ob das Paket in Debian 13 verfügbar ist und das Protokoll von labwc unterstützt wird, ist vor dem Einsatz mit `apt-cache policy wlrctl` zu prüfen. Ohne dieses Paket fällt der Fokus von selbst auf den Launcher zurück, sobald das App-Fenster schließt. |
-| `wlr-randr` | Auflösung und Wiederholrate im labwc-Autostart festlegen (auf dem Pi sinnvoll: 1920×1080) |
+| `wlr-randr` | Auflösung und Wiederholrate im labwc-Autostart festlegen (z. B. 1920×1080 für einen TV) |
 | `python3-venv` | nur für den pip-Weg (`INSTALL.md`, Variante B) |
 | `python3-httpx` | nur für die API-Tests; ohne dieses Paket werden sie übersprungen |
 | `intel-media-va-driver` | Hardware-Videodekodierung (VA-API) auf Intel-NUCs |
 | `mesa-va-drivers` | VA-API für AMD-Grafik |
 | `vainfo` | Diagnose, welche Codecs die Grafik beschleunigt |
 | `unattended-upgrades` | automatische Sicherheitsupdates, vor allem für Google Chrome |
-| `zram-tools` | komprimierter Swap im Arbeitsspeicher, sinnvoll auf Pi-Modellen mit 2 bis 4 GB |
+| `zram-tools` | komprimierter Swap im Arbeitsspeicher, optional auf x86_64-Geräten mit wenig RAM |
 
 ## 3. Kernel, Python und Dateisystem
 
@@ -60,7 +60,7 @@ Zielsystem: **Debian 13 „trixie“ auf `amd64` / x86_64 (Intel/AMD)**. ARM wir
 | Was | Festlegung |
 | --- | --- |
 | Betriebssystembenutzer | `livingroomos`, gewöhnliches Konto ohne `sudo` und ohne besondere Capabilities |
-| Zusätzliche Gruppen | normalerweise keine; logind vergibt GPU- und Audiozugriff je Sitzung. Nur wenn nötig auf dem Pi: `video`, `render`, `audio` |
+| Zusätzliche Gruppen | normalerweise keine; logind vergibt GPU- und Audiozugriff je Sitzung. Zusätzliche Gruppen `video`, `render` oder `audio` nur ergänzen, wenn ein Test es auf dem Zielsystem erfordert |
 | `/opt/livingroomos` | gehört `root`, lesbar für alle, nicht beschreibbar für `livingroomos` (Programmcode kann sich nicht selbst ändern) |
 | `~/.config/livingroomos/settings.json` | gehört `livingroomos`, Modus 0600; das Backend schreibt nur den Abschnitt `ui` zurück |
 | `~/.local/share/livingroomos/profiles/<id>/` | Browserprofile, Modus 0700 |
