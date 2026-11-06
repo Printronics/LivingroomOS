@@ -71,7 +71,7 @@ settings.json  ◄── Administrator (vertraut)
 
 | Pfad | Zugriff | Modus |
 | --- | --- | --- |
-| `<Projekt>/backend/config/settings.json` | Lesen (Abschnitt `ui` wird atomar zurückgeschrieben) | 0644, Besitzer root oder `livingroomos`; `apps` nur vom Administrator ändern |
+| `/opt/livingroomos/backend/config/settings.json` | Nur Lesen; Vorlage, Änderungen werden nicht zur Laufzeit gespeichert | root:root, 0644 |\n| `/var/lib/livingroomos/.config/livingroomos/settings.json` | Lesen/Schreiben; API darf nur den Abschnitt `ui` ändern | livingroomos:livingroomos, 0600 |
 | `~/.local/share/livingroomos/profiles/<id>/` | Lesen/Schreiben | 0700 |
 | `~/.local/share/livingroomos/logs/` | Schreiben | 0700, Dateien 0600 |
 | `$XDG_RUNTIME_DIR/livingroomos/` (`backend.lock`, `state.json`) | Lesen/Schreiben | 0700, Dateien 0600 |
