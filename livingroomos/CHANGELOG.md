@@ -23,7 +23,7 @@ The version number is defined in exactly one place: `backend/version.py`.
 
 ### Verification
 
-- Consistency tests: 21/21 passed.
+- The previous development run reported 21/21 consistency tests passing. The suite has since been extended; rerun it for this revision before release.
 - API and process-start tests were partially blocked in this development environment by the unsafe file ownership of the supplied Python virtual environment interpreter; run them again on a regular Debian 13 system.
 - Kiosk and power-management integration must be tested on real hardware.
 
