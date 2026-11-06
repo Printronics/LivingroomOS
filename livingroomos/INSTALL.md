@@ -252,21 +252,20 @@ The expected settings path is:
 /var/lib/livingroomos/.config/livingroomos/settings.json
 ```
 
-Before starting the backend, identify the settings template or initial configuration supplied by the project. Use that file to create `settings.json` at the expected location.
-
-Do not create an empty JSON file as a substitute for the application's required configuration.
-
-Set ownership and permissions after installing the initial settings:
+Create the runtime settings file from the configuration template included in the repository:
 
 ```bash
-sudo chown livingroomos:livingroomos \
-    /var/lib/livingroomos/.config/livingroomos/settings.json
-
-sudo chmod 600 \
+sudo install \
+    -o livingroomos \
+    -g livingroomos \
+    -m 600 \
+    /opt/livingroomos/backend/config/settings.json \
     /var/lib/livingroomos/.config/livingroomos/settings.json
 ```
 
-If the project version does not provide a settings template, check the configuration requirements in the backend before starting the service.
+This copies the supplied configuration into the exact path used by the backend. The source file remains part of the downloaded project; the runtime copy is owned by `livingroomos` because the application saves UI settings to it.
+
+Before the first start, edit the runtime copy and replace the example streaming URLs with the services you actually use. In particular, `example.com` and `example.org` are placeholders, and `localhost:8096` requires a media server listening on that address.
 
 ---
 
