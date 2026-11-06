@@ -61,6 +61,7 @@ LivingroomOS/
     │   ├── chrome/
     │   ├── greetd/
     │   ├── labwc/
+    │   ├── polkit/
     │   └── systemd/user/
     ├── tools/
     ├── debian-packages.txt
