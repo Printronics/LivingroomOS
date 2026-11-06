@@ -11,8 +11,8 @@ polkit.addRule(function(action, subject) {
         return;
     }
 
-    // Explicitly deny these actions to every other account. Returning undefined
-    // would fall through to systemd's default policy, which allows active users.
+    // Keep root administration available, but explicitly deny every other account.
+    // Returning undefined would fall through to systemd's active-user default policy.
     if (subject.user === "livingroomos" || subject.user === "root") {
         return polkit.Result.YES;
     }
