@@ -64,13 +64,16 @@ This is a simplified overview of the main project directories.
 
 ## Running Tests
 
-The automated test suite can be run from the `livingroomos/` directory:
+Install the development dependencies and run the complete test suite from the `livingroomos/` directory:
 
 ```bash
-python3 -B -m unittest discover -s backend/tests -v
+cd livingroomos
+python3 -m venv .venv
+.venv/bin/pip install -r requirements-dev.txt
+.venv/bin/python -B -m unittest discover -s backend/tests -v
 ```
 
-The tests cover selected aspects of the project, including project structure, configuration files, and system components.
+The tests cover selected aspects of the project, including project structure, configuration files, system components, and the API.
 
 A successful test run does not necessarily mean that all features have been verified on the intended target hardware.
 
