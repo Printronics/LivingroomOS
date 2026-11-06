@@ -37,6 +37,15 @@ def kernel_version() -> tuple[int, int]:
     return (int(match.group(1)), int(match.group(2))) if match else (0, 0)
 
 
+def is_supported_os(release: dict[str, str]) -> bool:
+    """LivingroomOS currently supports Debian 13 Trixie only."""
+    return (
+        release.get("ID", "").lower() == "debian"
+        and release.get("VERSION_ID", "") == "13"
+        and release.get("VERSION_CODENAME", "").lower() == "trixie"
+    )
+
+
 def find_binary(name: str) -> str | None:
     # Gleiche Verzeichnisse wie trusted_bin_dirs im Backend, nicht der PATH des Benutzers.
     for directory in ("/usr/local/bin", "/usr/bin", "/usr/sbin", "/opt"):
@@ -50,6 +59,18 @@ def check(config_path: Path) -> None:
     machine = platform.machine()
     record(machine in SUPPORTED_MACHINES, "Architektur", f"{machine} ({SUPPORTED_MACHINES.get(machine, 'nicht getestet')})")
     record(platform.system() == "Linux", "Betriebssystem", platform.system())
+    try:
+        os_release = platform.freedesktop_os_release()
+    except OSError:
+        os_release = {}
+    release_label = " ".join(
+        value for value in (
+            os_release.get("ID", ""),
+            os_release.get("VERSION_ID", ""),
+            os_release.get("VERSION_CODENAME", ""),
+        ) if value
+    ) or "unbekannt"
+    record(is_supported_os(os_release), "Debian 13 (Trixie)", release_label)
     record(sys.version_info >= MIN_PYTHON, "Python ≥ 3.11", platform.python_version())
     kernel = kernel_version()
     record(kernel >= MIN_KERNEL, "Linux-Kernel ≥ 5.3 (pidfd)", platform.release())
