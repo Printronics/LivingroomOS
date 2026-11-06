@@ -324,7 +324,10 @@ Review any missing dependencies or configuration warnings.
 
 The checker is intended to identify important system requirements such as:
 
+- Debian 13 (Trixie)
 - x86_64 architecture
+- Python 3.11 or newer
+- Linux kernel 5.3 or newer
 - Google Chrome
 - labwc
 - greetd
