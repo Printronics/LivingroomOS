@@ -1,257 +1,550 @@
-# LivingroomOS – Installation auf Debian 13
+# LivingroomOS Installation Guide
 
-Diese Anleitung richtet einen frischen Debian-13-Rechner („trixie“) als Fernseher-Appliance ein: Der Rechner meldet den
-Benutzer `livingroomos` automatisch an und zeigt direkt den LivingroomOS-Launcher.
+**Target platform: Debian 13 (Trixie), amd64 / x86_64**
 
-> **Ehrlicher Stand:** Das Backend, die Prozessverwaltung und die Oberfläche sind in einer Entwicklungsumgebung getestet.
-> Die Systemdateien in `system/` (greetd, labwc, systemd, Google Chrome-Richtlinien) wurden nach der Dokumentation der Programme
-> geschrieben, aber **noch nicht auf echter Hardware ausgeführt**, ebenso die Streaming-Wiedergabe. Deshalb ist der
-> Weg unten so aufgebaut, dass jeder Schritt einzeln prüfbar ist und der Rückweg immer offen bleibt. Mit `[prüfen]`
-> markierte Stellen sind Annahmen, die du auf dem Gerät bestätigen musst.
+This guide describes how to install and configure LivingroomOS on a minimal Debian 13 system.
 
-Debian-Systempakete kommen aus dem **offiziellen Debian-Archiv** über `apt`. Google Chrome wird separat als offizielles Herstellerpaket installiert. Das Projekt lädt keine Installationsskripte aus dem Netz und trägt keine Fremd-Repositories ein.
+**Important:** Complete the Debian installation first by following [DEBIANINSTALL.md](DebianInstall.md). Do not skip the Debian preparation steps.
 
-## 0. Voraussetzungen
+LivingroomOS is currently intended for internal testing. Perform the initial installation on a dedicated test machine.
 
-| Was | Anforderung |
-| --- | --- |
-| Rechner | x86_64-Rechner mit Intel- oder AMD-64-Bit-Prozessor. ARM wird nicht unterstützt. |
-| Arbeitsspeicher / Platz | mindestens 4 GB RAM und 8 GB Speicher |
-| Netzwerk | Verbindung für die Installation und für die Dienste (Streaming-Anbieter usw.) |
-| Zugang zum Rechner | zweiter Rechner mit **SSH** – das ist der Rettungsweg (siehe Abschnitt 9) |
-| Projekt | der Ordner `livingroomos/` oder das Archiv `livingroomos.zip` |
+---
 
-## 1. Debian 13 minimal installieren
+## 1. Requirements
 
-1. Debian 13 „trixie“ von <https://www.debian.org/distrib/> laden und mit dem normalen Debian-Installer (netinst) installieren.
-   Die Prüfsumme des Abbilds mit den dortigen `SHA256SUMS` vergleichen.
-2. Bei der Softwareauswahl **alle Desktop-Umgebungen abwählen**. Angekreuzt bleiben nur **„SSH-Server“** und
-   **„Standard-Systemwerkzeuge“**.
-3. Während der Installation ein Administratorkonto anlegen (im Folgenden `admin`, mit `sudo`). Den Benutzer `livingroomos`
-   legen wir in Abschnitt 3 an.
-4. Nach dem ersten Start per SSH als `admin` anmelden und das System aktualisieren:
+### Hardware
+
+- x86_64 / amd64 processor
+- Graphics hardware with working Linux DRM/KMS support
+- Display or television connected to the system
+- Keyboard or another supported input device
+- Internet connection for package installation
+
+ARM and ARM64 hardware are not supported.
+
+### Software
+
+The Debian base system must already be installed according to [DebianInstall.md](DebianInstall.md).
+
+The following components will be installed or configured during this guide:
+
+- Python 3
+- Google Chrome Stable
+- Wayland
+- labwc
+- greetd
+- systemd
+- Polkit
+- PipeWire
+
+---
+
+## 2. Verify the Debian installation
+
+Log in using the regular Debian user created during the Debian installation.
+
+Check the architecture:
+
+```bash
+uname -m
+```
+
+Expected output:
+
+```text
+x86_64
+```
+
+Check the Debian version:
+
+```bash
+cat /etc/os-release
+```
+
+Make sure the system is running Debian 13.
+
+Check network connectivity:
+
+```bash
+ping -c 3 deb.debian.org
+```
+
+Update the system:
 
 ```bash
 sudo apt update
-sudo apt full-upgrade
+sudo apt full-upgrade -y
 ```
 
-Falls `sudo` fehlt: `su -` und `apt install sudo`, danach `usermod -aG sudo admin` und neu anmelden.
+If the architecture is not x86_64, stop here.
 
-## 2. Pakete installieren
+---
 
-Google Chrome ist kein Paket aus dem Debian-Archiv. Lade das offizielle 64-Bit-Debian-Paket von Google herunter und installiere es separat:
+## 3. Install system dependencies
+
+Install the required Debian packages:
 
 ```bash
-sudo apt install wget
+sudo apt install -y \
+    python3 \
+    python3-venv \
+    python3-pip \
+    python3-dev \
+    build-essential \
+    labwc \
+    greetd \
+    systemd \
+    dbus-user-session \
+    libpam-systemd \
+    polkitd \
+    pipewire \
+    pipewire-pulse \
+    wireplumber \
+    mesa-utils \
+    fonts-noto-core \
+    fonts-noto-color-emoji \
+    curl \
+    ca-certificates \
+    unzip \
+    git \
+    wget
+```
+
+Some packages may already be installed or may have different availability depending on the Debian repository configuration.
+
+Install any additional dependencies listed in `debian-packages.txt` if they are not already covered.
+
+---
+
+## 4. Install Google Chrome Stable
+
+LivingroomOS uses Google Chrome Stable as its supported browser.
+
+Download it from the official distribution endpoint:
+
+```bash
+cd /tmp
 wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-sudo apt install ./google-chrome-stable_current_amd64.deb
 ```
 
-Das Projekt enthält weder den Browser noch dessen Binärdateien. Die Installation erfolgt direkt durch den Administrator.
-
-
-Mit dem Projektordner auf dem Rechner (zum Beispiel per `scp` nach `/tmp/livingroomos.zip`):
+Install it:
 
 ```bash
-sudo apt install unzip
-cd /tmp && unzip livingroomos.zip           # erzeugt /tmp/livingroomos
-cd /tmp/livingroomos
+sudo apt install -y ./google-chrome-stable_current_amd64.deb
 ```
 
-Pflichtpakete (die Liste steht in `debian-packages.txt`, jedes Paket ist in `docs/SYSTEMABHAENGIGKEITEN.md` begründet):
+Verify the installation:
 
 ```bash
-sudo apt install --no-install-recommends $(grep -v '^[[:space:]]*#' debian-packages.txt | awk '{print $1}')
+google-chrome-stable --version
 ```
 
-Prüfen, ob alle Pakete im Archiv gefunden wurden. Meldet `apt` bei einem Namen „Unable to locate package“, den Namen mit
-`apt-cache policy <paket>` suchen und in `debian-packages.txt` anpassen [prüfen]. Die Paketnamen sind nach Dokumentation
-von Debian 13 geschrieben, aber nicht auf einem installierten System bestätigt.
+The command should return the installed Chrome version.
 
-Optionale Pakete (siehe `debian-packages-optional.txt`) nach Bedarf, zum Beispiel für die Hardware-Videodekodierung auf
-einem x86_64-PC:
+Do not substitute Chromium unless the project is explicitly changed and tested to support it.
+
+---
+
+## 5. Create the LivingroomOS service account
+
+Create a dedicated system user:
 
 ```bash
-sudo apt install intel-media-va-driver vainfo
+sudo useradd \
+    --system \
+    --create-home \
+    --home-dir /var/lib/livingroomos \
+    --shell /usr/sbin/nologin \
+    livingroomos
 ```
 
-## 3. Benutzer anlegen
+The service account is intended to own the application runtime and perform only the operations required by LivingroomOS.
 
-Der Dienstbenutzer hat kein `sudo` und keine Zusatzrechte:
+The graphical session configuration may require additional session permissions or group membership depending on the hardware and Debian setup.
+
+Do not grant broad administrative privileges just to make the interface start.
+
+---
+
+## 6. Deploy the project
+
+Copy the LivingroomOS project directory to `/opt/livingroomos`.
+
+For example, if the project is currently in your home directory:
 
 ```bash
-sudo adduser --disabled-password --gecos "LivingroomOS" livingroomos
+sudo mkdir -p /opt/livingroomos
+sudo cp -a /path/to/LivingroomOS/. /opt/livingroomos/
 ```
 
-Kein Kennwort: Er meldet sich nur über greetd an, nicht per SSH. Wer an der Konsole oder per SSH als `livingroomos` arbeiten
-will, vergibt mit `sudo passwd livingroomos` ein Kennwort.
+Replace `/path/to/LivingroomOS` with the actual location of your project.
 
-Zugriff auf Grafik und Eingabegeräte vergibt `logind` je Sitzung. Nur falls `labwc` später „Permission denied“ auf
-`/dev/dri/*` oder `/dev/input/*` meldet, die Gruppen ergänzen: `sudo adduser livingroomos video` und `sudo adduser livingroomos render`
-(auf dem Zielsystem eventuell zusätzlich `audio`).
+Set ownership according to the intended runtime and security model.
 
-## 4. Projekt nach `/opt/livingroomos` kopieren
+The application should not allow an unprivileged process to modify trusted executable files or system configuration.
 
-Der Programmcode gehört `root` und ist für `livingroomos` nur lesbar. So kann sich die Anwendung nicht selbst verändern.
+Review executable permissions:
 
 ```bash
-sudo cp -a /tmp/livingroomos /opt/livingroomos
-sudo chown -R root:root /opt/livingroomos
-sudo chmod -R go-w /opt/livingroomos
-sudo chmod 755 /opt/livingroomos/run.sh /opt/livingroomos/system/bin/livingroomos-session /opt/livingroomos/system/bin/livingroomosctl
+sudo find /opt/livingroomos -type f -name '*.sh' -exec chmod 755 {} \;
 ```
 
-## 5. Konfiguration des Benutzers
+Make sure that configuration files and application files are not writable by untrusted users.
 
-Das Backend schreibt Oberflächeneinstellungen zurück. Deshalb liegt die Konfiguration im Benutzerverzeichnis:
+---
+
+## 7. Set up the Python environment
+
+Switch to the project directory:
 
 ```bash
-sudo -u livingroomos install -d -m 0700 /home/livingroomos/.config/livingroomos
-sudo -u livingroomos install -m 0600 /opt/livingroomos/backend/config/settings.json /home/livingroomos/.config/livingroomos/settings.json
+cd /opt/livingroomos
 ```
 
-Die Apps stehen in dieser Datei (`/home/livingroomos/.config/livingroomos/settings.json`). Die Beispiel-Einträge „Demo-App“ und
-„Absturz-Test“ dienen dem Ausprobieren und können später entfernt werden. Regeln für Einträge: README.md, Abschnitt
-„Konfiguration“.
-
-## 6. Systemprüfung und Tests
-
-Als `livingroomos`, ohne Bytecode-Dateien unter `/opt` zu schreiben:
+Create a virtual environment as the LivingroomOS account:
 
 ```bash
-sudo -u livingroomos python3 -B /opt/livingroomos/tools/check_system.py --config /home/livingroomos/.config/livingroomos/settings.json
-cd /opt/livingroomos/backend && sudo -u livingroomos python3 -B -m unittest discover -s tests
+sudo -u livingroomos python3 -m venv .venv
 ```
 
-`check_system.py` meldet `OK`, `FEHLT` (Pflicht) oder `HINWEIS` (optional). Es darf kein `FEHLT` bleiben. Die Tests laufen
-ohne Zusatzpakete bis auf die HTTP-Tests (`test_api.py`), die `python3-httpx` brauchen und sonst übersprungen werden.
-Für sie: `sudo apt install python3-httpx`. Alle Tests sollten bestehen.
+Install the Python dependencies required by the backend.
 
-## 7. Backend allein ausprobieren
-
-Noch ohne Autologin, nur das Backend:
+At minimum, the application requires FastAPI and Uvicorn:
 
 ```bash
-sudo -u livingroomos env LIVINGROOMOS_CONFIG=/home/livingroomos/.config/livingroomos/settings.json /opt/livingroomos/run.sh
+sudo -u livingroomos /opt/livingroomos/.venv/bin/pip install fastapi uvicorn
 ```
 
-In einem zweiten Terminal:
+If the project contains a `requirements.txt`, use that file instead:
 
 ```bash
-curl -s http://127.0.0.1:8750/api/v1/health                     # {"status":"ok"}
-curl -s http://127.0.0.1:8750/api/v1/apps
-curl -s -X POST -H 'X-LivingroomOS: 1' http://127.0.0.1:8750/api/v1/apps/demo/launch
-curl -s http://127.0.0.1:8750/api/v1/apps/status                # state: running
-curl -s -X POST -H 'X-LivingroomOS: 1' http://127.0.0.1:8750/api/v1/apps/demo/stop
+sudo -u livingroomos /opt/livingroomos/.venv/bin/pip install -r requirements.txt
 ```
 
-Mit `Strg+C` beenden. Funktioniert das, ist das Backend in Ordnung.
+Do not install Python packages globally with `sudo pip`.
 
-## 8. Systemdateien einrichten
+---
 
-### 8.1 systemd-Benutzer-Units, Google-Chrome-Richtlinien und Power-Berechtigung
+## 8. Test the backend manually
+
+Start the application:
 
 ```bash
-sudo cp /opt/livingroomos/system/systemd/user/livingroomos-backend.service \
-        /opt/livingroomos/system/systemd/user/livingroomos-shell.service \
-        /opt/livingroomos/system/systemd/user/livingroomos.target /etc/systemd/user/
-sudo install -D -m 0644 /opt/livingroomos/system/polkit/50-livingroomos-power.rules \
-        /etc/polkit-1/rules.d/50-livingroomos-power.rules
-sudo install -d /etc/opt/chrome/policies/managed
-sudo cp /opt/livingroomos/system/chrome/livingroomos.json /etc/opt/chrome/policies/managed/livingroomos.json
+sudo -u livingroomos /opt/livingroomos/run.sh
 ```
 
-Nach jeder Änderung an den Units im Projektordner erneut kopieren. Ob Google Chrome sein Richtlinienverzeichnis unter
-`/etc/opt/chrome/policies/managed` liest, bestätigt `chrome://policy` im Launcher-Fenster [prüfen].
+The backend should listen on:
 
-### 8.2 Zuerst ohne Autologin testen
-
-Der sichere erste Test: als `livingroomos` an der Konsole anmelden und den Compositor von Hand starten. Dafür vorher ein
-Kennwort setzen (`sudo passwd livingroomos`), dann an der Konsole mit Strg+Alt+F2 wechseln und anmelden.
-
-```bash
-labwc -C /opt/livingroomos/system/labwc
+```text
+http://127.0.0.1:8750
 ```
 
-Erwartet: leerer schwarzer Bildschirm, kurz darauf der LivingroomOS-Launcher im Vollbild. Eine App mit Enter starten,
-`Strg+Alt+Pos1` beendet sie wieder. Weil das Kiosk-labwc keine Konsolenwechsel erlaubt, beendest du den Test per SSH:
-`sudo pkill -u livingroomos -x labwc`. Läuft das, ist der Rest nur noch Autostart.
-
-### 8.3 Autologin mit greetd
-
-greetd soll die Sitzung beim Start automatisch starten.
+In another terminal, check its health endpoint:
 
 ```bash
-sudo cp /etc/greetd/config.toml /etc/greetd/config.toml.orig        # Sicherung
-sudo cp /opt/livingroomos/system/greetd/config.toml /etc/greetd/config.toml
-getent passwd _greetd            # muss einen Eintrag zeigen; sonst `user = "_greetd"` in config.toml anpassen [prüfen]
+curl http://127.0.0.1:8750/api/v1/health
+```
+
+The expected response is a successful health response from the backend.
+
+Stop the manually started process before proceeding with systemd configuration.
+
+---
+
+## 9. Run the system checker
+
+Run the system checker:
+
+```bash
+sudo -u livingroomos python3 -B /opt/livingroomos/tools/check_system.py
+```
+
+Review any missing dependencies or configuration warnings.
+
+The checker is intended to identify important system requirements such as:
+
+- x86_64 architecture
+- Google Chrome
+- labwc
+- greetd
+- required system components
+
+Optional utilities may be reported separately.
+
+Resolve blocking errors before enabling automatic startup.
+
+---
+
+## 10. Configure the graphical session
+
+LivingroomOS uses Wayland and labwc.
+
+The project includes session configuration under:
+
+```text
+/opt/livingroomos/system/
+```
+
+Review the supplied configuration before installing it.
+
+The greetd configuration is expected to start the LivingroomOS session using:
+
+```text
+/opt/livingroomos/system/bin/livingroomos-session
+```
+
+Make sure the script exists and is executable:
+
+```bash
+sudo test -x /opt/livingroomos/system/bin/livingroomos-session \
+    && echo "Session script is executable"
+```
+
+Check the labwc configuration and confirm that the application startup command points to the correct project location.
+
+Do not enable automatic login until manual session startup has been tested successfully.
+
+---
+
+## 11. Configure systemd
+
+The project provides systemd integration under:
+
+```text
+/opt/livingroomos/system/systemd/
+```
+
+Review the included unit files before installing them.
+
+Install the appropriate units into the systemd configuration directory according to their intended scope:
+
+- System units belong in `/etc/systemd/system/`.
+- User units belong in the relevant user's systemd configuration directory.
+
+Do not install user units as system units or vice versa.
+
+After installation, reload systemd:
+
+```bash
+sudo systemctl daemon-reload
+```
+
+Enable only the services required by the supplied configuration.
+
+Check service status with:
+
+```bash
+systemctl status greetd
+```
+
+For a user service, inspect it from the corresponding user session:
+
+```bash
+systemctl --user status
+```
+
+---
+
+## 12. Configure power management permissions
+
+LivingroomOS provides restart and shutdown controls.
+
+These operations must remain restricted to the intended service account.
+
+The project includes a Polkit rule under:
+
+```text
+/opt/livingroomos/system/polkit/
+```
+
+Review the rule before installing it.
+
+The intended permissions are limited to the required system power operations:
+
+- Reboot
+- Power off
+
+Do not add unrestricted administrator permissions or broad Polkit rules.
+
+After installing the rule, reload or restart the relevant system services if required by the configuration.
+
+Test power operations only on a dedicated test machine.
+
+---
+
+## 13. Enable automatic startup
+
+Only continue after the following have been verified:
+
+- The backend starts successfully.
+- The health endpoint responds.
+- Chrome launches successfully.
+- labwc starts correctly.
+- The LivingroomOS session script is executable.
+- The relevant systemd units are installed.
+- Power management permissions have been reviewed.
+
+Enable greetd:
+
+```bash
 sudo systemctl enable greetd
-sudo systemctl set-default graphical.target
 ```
 
-Falls bereits ein anderer Anmeldemanager installiert ist (gdm3, sddm, lightdm), diesen vorher entfernen oder deaktivieren
-(`sudo systemctl disable gdm3`), damit nur ein Anmeldemanager startet.
+For the first automatic-start test, keep a separate SSH connection or another recovery method available.
 
-Dann neu starten:
+Then reboot:
 
 ```bash
 sudo reboot
 ```
 
-Erwartet: Nach dem Boot meldet greetd `livingroomos` an, `livingroomos-session` startet labwc, labwc startet `livingroomos.target`, und
-der Launcher erscheint. Pfeiltasten und Enter bedienen ihn.
+The system should start the configured LivingroomOS session.
 
-## 9. Fehlersuche und Rettung
+---
 
-Der Kiosk-Compositor sperrt Konsolenwechsel (`system/labwc/rc.xml` enthält bewusst keine Standardkürzel). **SSH ist der
-Rettungsweg.** Alle Befehle per SSH als `admin`:
+## 14. Initial test checklist
 
-| Problem | Maßnahme |
-| --- | --- |
-| Schwarzer Bildschirm | `journalctl -b -u greetd` und `sudo -u livingroomos journalctl --user -b` ansehen |
-| Backend läuft nicht | `sudo -u livingroomos XDG_RUNTIME_DIR=/run/user/$(id -u livingroomos) systemctl --user status livingroomos-backend` |
-| Launcher zeigt „Backend nicht erreichbar“ | Backend-Log wie oben, dann `curl http://127.0.0.1:8750/api/v1/health` |
-| App startet nicht | Meldung im Dialog; Ausgabe der App in `/home/livingroomos/.local/share/livingroomos/logs/<id>.log` |
-| `config_problems` im Status | `curl -s http://127.0.0.1:8750/api/v1/system/status`; ungültige App-Einträge werden dort begründet |
-| Autologin abschalten | `sudo cp /etc/greetd/config.toml.orig /etc/greetd/config.toml` und neu starten, oder `sudo systemctl disable greetd` |
-| Normale Konsole zurück | `sudo systemctl set-default multi-user.target` und neu starten |
+After the first successful startup, test the following:
 
-Die Datei `/home/livingroomos/.config/livingroomos/settings.json` enthält die Konfiguration. Nach Änderungen das Backend neu starten:
-`sudo -u livingroomos XDG_RUNTIME_DIR=/run/user/$(id -u livingroomos) systemctl --user restart livingroomos-backend`.
+- [ ] LivingroomOS starts automatically.
+- [ ] The display uses the expected resolution.
+- [ ] The interface is visible and usable.
+- [ ] Keyboard navigation works.
+- [ ] Google Chrome launches.
+- [ ] Application navigation works.
+- [ ] Settings can be changed.
+- [ ] Settings persist after restarting the application.
+- [ ] The Debug section contains the test applications.
+- [ ] System status information is displayed.
+- [ ] Restart works as intended.
+- [ ] Shutdown works as intended.
+- [ ] The interface recovers from a backend restart.
+- [ ] Logs do not contain unexpected errors.
 
-## 10. Update und Rückbau
+---
 
-**Update:** neuen Projektordner nach `/tmp` entpacken, Abschnitt 4 wiederholen (`/opt/livingroomos` vorher umbenennen), Units aus
-Abschnitt 8.1 neu kopieren, `sudo reboot`. Die Konfiguration unter `/home/livingroomos/.config/livingroomos/` bleibt unberührt. Neue
-Einstellungsschlüssel stehen im CHANGELOG.
+## 15. Troubleshooting
 
-**Rückbau:**
+### The backend does not start
 
-```bash
-sudo systemctl disable greetd
-sudo systemctl set-default multi-user.target
-sudo rm /etc/systemd/user/livingroomos-backend.service /etc/systemd/user/livingroomos-shell.service /etc/systemd/user/livingroomos.target
-sudo rm /etc/opt/chrome/policies/managed/livingroomos.json
-sudo rm -r /opt/livingroomos
-sudo deluser --remove-home livingroomos
-```
-
-## 11. DRM und geschützte Wiedergabe
-
-Ob DRM-geschützte Inhalte funktionieren, hängt vom jeweiligen Anbieter und dessen Browseranforderungen ab. LivingroomOS installiert keine DRM-Komponenten oder proprietären Medienmodule. Die Unterstützung muss pro Anbieter auf dem Zielgerät geprüft werden.
-
-## 12. Alternative: Python-Pakete aus PyPI (virtuelle Umgebung)
-
-Der Standardweg nutzt `python3-fastapi` und `python3-uvicorn` aus Debian. Wer neuere Versionen will, kann stattdessen die
-Pakete aus `requirements.txt` von PyPI beziehen. PyPI ist eine zweite Quelle neben Debian und bekommt keine
-Sicherheitsupdates über `apt`.
+Check the Python environment:
 
 ```bash
-sudo apt install python3-venv
-sudo python3 -m venv /opt/livingroomos/.venv
-sudo /opt/livingroomos/.venv/bin/pip install -r /opt/livingroomos/requirements.txt
-sudo chmod -R go-w /opt/livingroomos/.venv
+ls -la /opt/livingroomos/.venv/bin/python
 ```
 
-`run.sh` nutzt `/opt/livingroomos/.venv` automatisch. Die benötigten Pakete sind reine Python-Pakete; es wird nichts kompiliert.
+Check the backend manually:
+
+```bash
+sudo -u livingroomos /opt/livingroomos/run.sh
+```
+
+Review the terminal output for missing dependencies or configuration errors.
+
+### The health endpoint does not respond
+
+Check whether the backend is running:
+
+```bash
+ss -ltnp | grep 8750
+```
+
+Check the local endpoint:
+
+```bash
+curl -v http://127.0.0.1:8750/api/v1/health
+```
+
+Confirm that the backend is listening on `127.0.0.1` and the expected port.
+
+### Chrome does not launch
+
+Check the installed browser:
+
+```bash
+google-chrome-stable --version
+```
+
+Check the session environment and display permissions.
+
+### The graphical session does not start
+
+Inspect greetd:
+
+```bash
+sudo systemctl status greetd
+sudo journalctl -u greetd -b
+```
+
+Inspect system logs:
+
+```bash
+sudo journalctl -b -p warning
+```
+
+Check that the session script exists and is executable.
+
+### Restart or shutdown does not work
+
+Review the Polkit rule and the service account configuration.
+
+Inspect system logs:
+
+```bash
+sudo journalctl -b | grep -i polkit
+```
+
+Do not work around permission errors by granting unrestricted root access to the application.
+
+---
+
+## 16. Uninstall and recovery
+
+If the automatic session prevents normal access:
+
+1. Switch to a TTY using the appropriate keyboard shortcut, commonly `Ctrl+Alt+F2`.
+2. Log in with an administrator account.
+3. Disable greetd:
+
+```bash
+sudo systemctl disable --now greetd
+```
+
+4. Reboot:
+
+```bash
+sudo reboot
+```
+
+To remove the application after disabling its services:
+
+```bash
+sudo rm -rf /opt/livingroomos
+```
+
+Remove only the systemd units and Polkit rules that were installed specifically for LivingroomOS.
+
+Reload systemd after removing system units:
+
+```bash
+sudo systemctl daemon-reload
+```
+
+Do not remove shared Debian packages unless you have confirmed that no other installed software depends on them.
+
+---
+
+## 17. Internal testing notes
+
+This installation guide describes the intended deployment configuration. Hardware-specific behavior can vary, particularly for:
+
+- GPU drivers
+- HDMI audio
+- display resolution and refresh rate
+- remote-control input devices
+- Wayland session permissions
+- automatic login behavior
+
+Test the complete startup and recovery process before deploying LivingroomOS to a device that is used regularly.
+
+**LivingroomOS is currently intended for internal testing.**
