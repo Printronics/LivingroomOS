@@ -172,7 +172,7 @@ The crash dialog appears for `crashed` and `start_failed`. Whenever an applicati
 
 The remote control's **Home button** (`XF86HomePage`) is a labwc shortcut (`rc.xml`) that calls `livingroomosctl home`. This sends `POST /api/v1/apps/stop`. If the remote does not send a Home key, `Ctrl+Alt+Home` stops the application.
 
-Target: launcher visible in under 15 seconds (NUC) or 25 seconds (Pi). These are assumptions and have not yet been measured.
+Target: launcher visible in under 15 seconds on the reference NUC or 25 seconds on slower supported x86_64 hardware. These are assumptions and have not yet been measured.
 
 ## 7. Security (Summary)
 
@@ -229,7 +229,7 @@ The first design was a target architecture. The implementation is a prototype th
 | Security middleware with Origin validation and JSON requirement | Host validation plus required `X-LivingroomOS` header | The custom header provides CSRF protection without Origin evaluation. |
 | Separate compositor bridge module (`WlrctlBridge`) | Optional `server.return_to_launcher_command` | Focus usually returns automatically after the application window closes; the command is an additional measure. |
 | Frontend `main.js`, `nav.js`, `events.js`, `store.js`, `views/`, `components/` | `app.js`, `navigation.js`, `remote.js`, `api.js` | Filenames were specified by the project requirements. |
-| `platform/` profiles for architectures | None; architecture is only included in system status | There is currently nothing architecture-specific. Profiles can be added if measurements on the Pi require them. |
+| `platform/` profiles for architectures | None; architecture is only included in system status | There is currently nothing architecture-specific. Profiles can be added if measurements on supported x86_64 devices require them. |
 
 Unchanged from the original design: the single-foreground-application principle, the startup chain greetd → `livingroomos-session` → labwc → `livingroomos.target`, the two units, `livingroomosctl`, loopback-only access, versioned paths, idempotency, and HTTP 409 on conflicts.
 
@@ -237,10 +237,10 @@ Unchanged from the original design: the single-foreground-application principle,
 
 | Topic | Assessment and mitigation |
 |---|---|
-| Memory usage | Google Chrome is the largest consumer (launcher and application together use several hundred MB). Only one foreground application is allowed; use `zram-tools` on the Pi. No hard memory limit is configured (see the difference regarding `MemoryMax`). |
+| Memory usage | Google Chrome is the largest consumer (launcher and application together use several hundred MB). Only one foreground application is allowed; consider `zram-tools` on low-memory x86_64 hardware. No hard memory limit is configured (see the difference regarding `MemoryMax`). |
 | Idle CPU usage | The backend waits; polling occurs every 4 seconds; animations are short and CSS-only. |
 | Widevine (streaming services) | Debian's Google Chrome package does not include Widevine. Playback by streaming services is **not guaranteed**; the project does not install Widevine. |
-| Hardware video decoding | VA-API may be available on the NUC; it is not guaranteed on the Pi. Measure on the target hardware. |
+| Hardware video decoding | VA-API availability depends on the GPU and driver. Measure it on the target x86_64 hardware. |
 | Recovery from misconfiguration | Kiosk labwc disables console switching. SSH is the recovery path and should be included in the installation. |
 | Application and backend share a UID | A compromised application could affect the backend. Further isolation could use `systemd-run` with sandboxing (see future work). |
 | Untested system files | `system/` (greetd, labwc, systemd) was written based on documentation but has not been tested on physical hardware. |
