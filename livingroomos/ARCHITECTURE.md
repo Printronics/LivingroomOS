@@ -1,42 +1,42 @@
-# LivingroomOS – Softwarearchitektur
+# LivingroomOS – Software Architecture
 
-Stand: Version 0.5.0. Dieses Dokument beschreibt, was **tatsächlich implementiert** ist. Wo die Umsetzung vom
-ursprünglichen Architekturentwurf abweicht, steht das mit Begründung in Abschnitt 11. Das Sicherheitskonzept steht in
-[docs/SICHERHEIT.md](docs/SICHERHEIT.md), die Systempakete in
-[docs/SYSTEMABHAENGIGKEITEN.md](docs/SYSTEMABHAENGIGKEITEN.md).
+**Status: Version 0.5.0**
 
-## 1. Zielbild und Leitprinzipien
+This document describes what is **actually implemented**. Where the implementation differs from the original architectural design, the reasons are documented in Section 11.
 
-LivingroomOS ist ein Appliance-System: Ein Debian-13-Rechner bootet ohne Desktop direkt in eine HTML-Oberfläche. Streaming-Anbieter,
-Video-Webseiten, eigene Mediathek und andere Dienste laufen als austauschbare Fremdanwendungen daneben. Zur Laufzeit gibt es nur
-**Compositor + Browser + einen Python-Dienst**.
+The security concept is documented in [docs/SECURITY.md](docs/SECURITY.md), and the system packages are listed in [docs/SYSTEM_DEPENDENCIES.md](docs/SYSTEM_DEPENDENCIES.md).
 
-1. Das Backend ist die einzige Instanz, die Prozesse startet und beendet. Das Frontend zeigt an und sendet Absichten
-   („starte App X“).
-2. Es läuft genau ein Vordergrundprogramm gleichzeitig. Das spart Arbeitsspeicher und macht Fokus und Rückkehr eindeutig.
-3. Neue Apps entstehen durch einen Eintrag in `settings.json`, nicht durch neuen Code.
-4. Alles Hardwarespezifische (x86_64) gehört in Konfiguration und Systempakete, nie in den Code.
-5. Der Rückweg zum Launcher funktioniert auch, wenn eine Fremdanwendung hängt oder abstürzt.
-6. Keine unnötigen Frameworks: kein Desktop, kein Frontend-Framework, kein Build-Schritt.
+## 1. Goals and Design Principles
 
-| Bereich | Festlegung |
-| --- | --- |
-| Zielhardware v1 | Intel NUC (x86_64) |
-| Zielhardware später | x86_64-PC (Intel/AMD) |
-| Betriebssystem | Debian 13 „trixie“, Pakete nur aus dem Debian-Archiv |
-| Bedienung | Fernbedienung oder Tastatur (Pfeile, Enter, Zurück, Home), keine Maus |
-| Nicht-Ziele v1 | Dateimanager, eigene Mediathek, Mehrbenutzerbetrieb, Fernzugriff über das Netzwerk |
+LivingroomOS is an appliance-style system: a Debian 13 computer boots directly into an HTML interface without a traditional desktop environment. Streaming services, video websites, a personal media library, and other services run alongside it as replaceable external applications.
 
-## 2. Gesamtübersicht
+At runtime, the system consists of only **a compositor, a browser, and one Python service**.
 
-```
- Einschalten
+1. The backend is the only component that starts and stops processes. The frontend displays information and sends requests (for example, "start app X").
+2. Exactly one foreground application runs at a time. This reduces memory usage and makes focus management and returning to the launcher predictable.
+3. New applications are added through an entry in `settings.json`, without requiring additional application code.
+4. All hardware-specific details (x86_64) belong in configuration and system packages, never in application code.
+5. Returning to the launcher must also work if an external application freezes or crashes.
+6. No unnecessary frameworks: no desktop environment, no frontend framework, and no build step.
+
+| Area | Decision |
+|---|---|
+| Initial target hardware | Intel NUC (x86_64) |
+| Future target hardware | x86_64 PC (Intel/AMD) |
+| Operating system | Debian 13 "Trixie", packages from the Debian archive only |
+| Input | Remote control or keyboard (arrow keys, Enter, Back, Home); no mouse |
+| Initial non-goals | File manager, built-in media library, multi-user operation, remote access over the network |
+
+## 2. System Overview
+
+```text
+ Power on
      │
      ▼
- systemd ──► greetd ──(initial_session, Benutzer livingroomos)──► livingroomos-session
-                                                                  │  startet labwc, bei Absturz neu
+ systemd ──► greetd ──(initial_session, user livingroomos)──► livingroomos-session
+                                                                  │  starts labwc, restarts after crashes
                                                                   ▼
-                                            labwc (Wayland-Compositor, Kiosk-Konfiguration)
+                                            labwc (Wayland compositor, kiosk configuration)
                                                                   │  autostart: systemctl --user start livingroomos.target
                           ┌───────────────────────────────────────┴──────────────────────────┐
                           ▼                                                                   ▼
@@ -48,230 +48,204 @@ Video-Webseiten, eigene Mediathek und andere Dienste laufen als austauschbare Fr
         │            process_manager  │                                       remote.js → navigation.js → app.js
         │            settings_store   │
         └──────────────┬──────────────┘
-                       │ asyncio.create_subprocess_exec (kein Shell, eigene Prozessgruppe)
+                       │ asyncio.create_subprocess_exec (no shell, separate process group)
                        ▼
-        Fremdanwendung: google-chrome-stable --app=… --user-data-dir=<eigenes Profil>   (immer nur eine)
+        External application: google-chrome-stable --app=… --user-data-dir=<separate profile> (only one at a time)
 ```
 
-Fernbedienungstasten laufen **nicht** über das Backend. Sie erreichen das fokussierte Fenster als Tastaturereignisse über
-den Compositor. Nur die Home-Taste ist ein Compositor-Kürzel, das `livingroomosctl home` aufruft (Abschnitt 6).
+Remote-control buttons do **not** communicate through the backend. They reach the focused window as keyboard events through the compositor. Only the Home button is a compositor shortcut that calls `livingroomosctl home` (see Section 6).
 
-## 3. Projektstruktur und Verantwortlichkeiten
+## 3. Project Structure and Responsibilities
 
-Es gibt genau einen Ort je Aufgabe. Abhängigkeiten zeigen nur nach unten: `api → services`. Die Dienste kennen weder
-FastAPI noch das Frontend.
+Each task has exactly one designated location. Dependencies point downward only: `api → services`. The services know nothing about FastAPI or the frontend.
 
 ### 3.1 Backend (`backend/`)
 
-| Modul | Verantwortung | Bewusst nicht zuständig für |
-| --- | --- | --- |
-| `main.py` | App-Fabrik, Lebenszyklus (Sperre holen, Apps beenden), Host-Prüfung, CSRF-Header, Sicherheitsheader, Fehlerformat, Frontend ausliefern | Geschäftslogik |
-| `version.py` | einzige Quelle der Versionsnummer | |
-| `api/apps.py` | REST-Router für Apps: Liste, Status, Start, Stopp; übersetzt Ausnahmen in HTTP-Statuscodes | Prozesse, Dateisystem |
-| `api/system.py` | `health` und `system/status` (nur lesend) | Systembefehle |
-| `api/settings.py` | Oberflächeneinstellungen lesen und ändern (Eingabeprüfung mit Pydantic) | andere Konfigurationsabschnitte |
-| `services/app_launcher.py` | übersetzt App-ID in einen geprüften Startbefehl; prüft Konfiguration, Programmpfad, Besitzer, Rechte, Profilordner, Umgebung; Rückkehr-Befehl | Prozessüberwachung |
-| `services/process_manager.py` | startet, überwacht und beendet genau ein Programm; Doppelstart-Sperre, Absturzerkennung, Prozessgruppe, Nachzüglersuche, Zustandsdatei, Backend-Sperre | Aufbau der Befehlszeile |
-| `services/settings_store.py` | lädt und schreibt `settings.json` (atomar, thread-sicher); nur der Abschnitt `ui` ist schreibbar | Prüfung der Apps |
-| `config/settings.json` | Serverwerte, UI-Einstellungen, App-Definitionen | Laufzeitzustand |
-| `tests/` | Unit-, Integrations- und Konsistenztests (Abschnitt 9) | |
+| Module | Responsibility | Explicitly not responsible for |
+|---|---|---|
+| `main.py` | Application factory, lifecycle (acquiring the lock, stopping applications), host validation, CSRF header, security headers, error format, serving the frontend | Business logic |
+| `version.py` | Single source of the version number | |
+| `api/apps.py` | REST router for applications: list, status, start, stop; translates exceptions into HTTP status codes | Processes, filesystem |
+| `api/system.py` | `health` and `system/status` (read-only) | System commands |
+| `api/settings.py` | Read and modify interface settings (input validation with Pydantic) | Other configuration sections |
+| `services/app_launcher.py` | Converts an app ID into a validated launch command; checks configuration, executable path, ownership, permissions, profile directory, and environment; provides the return command | Process monitoring |
+| `services/process_manager.py` | Starts, monitors, and stops exactly one application; prevents duplicate starts, detects crashes, manages process groups, finds remaining child processes, stores state, and locks the backend | Building the command line |
+| `services/settings_store.py` | Loads and writes `settings.json` atomically and thread-safely; only the `ui` section is writable | Application validation |
+| `config/settings.json` | Server settings, UI settings, and application definitions | Runtime state |
+| `tests/` | Unit, integration, and consistency tests (Section 9) | |
 
 ### 3.2 Frontend (`frontend/`)
 
-| Datei | Verantwortung |
-| --- | --- |
-| `index.html` | Gerüst: Kopfzeile, Ansichten, Dialog, Toast |
-| `css/main.css` | Design-Tokens, Farben, Schrift, Fokuszustände, Dialog |
-| `css/layout.css` | Raster, Abstände (berücksichtigen Overscan), Skalierung für 16:9 |
-| `js/app.js` | Zustand und Darstellung: Kacheln, Einstellungen, Dialoge, Abfrage des Status, Reaktion auf Abstürze |
-| `js/api.js` | `fetch`-Wrapper mit einheitlicher Fehlerbehandlung (`ApiError`) |
-| `js/navigation.js` | eigenständig: räumliche Fokusnavigation, Fokus-Wiederherstellung, Schutz vor Doppelauslösung |
-| `js/remote.js` | eigenständig: Tasten und Fernbedienungen → Aktionen, Entprellung, Wiederholungsschutz |
-| `dev/` | Demo- und Tastentest für die Navigation, ohne Backend nutzbar (kein Teil des Betriebs) |
+| File | Responsibility |
+|---|---|
+| `index.html` | Structure: header, views, dialog, toast notifications |
+| `css/main.css` | Design tokens, colors, typography, focus states, dialog |
+| `css/layout.css` | Grid, spacing (including overscan), 16:9 scaling |
+| `js/app.js` | State and rendering: tiles, settings, dialogs, status polling, crash handling |
+| `js/api.js` | `fetch` wrapper with consistent error handling (`ApiError`) |
+| `js/navigation.js` | Standalone spatial focus navigation, focus restoration, protection against duplicate activation |
+| `js/remote.js` | Standalone keyboard and remote-control input handling, debouncing, repeat protection |
+| `dev/` | Navigation demo and keyboard test; works without the backend and is not part of normal operation |
 
-`app.js` ist der einzige Ort, der `navigation.js`, `remote.js` und `api.js` zusammenbringt. Die beiden
-Navigationsmodule kennen weder einander noch die Anwendung.
+`app.js` is the only module that brings `navigation.js`, `remote.js`, and `api.js` together. The two navigation modules do not know about each other or the application.
 
-### 3.3 Sitzungskonfiguration (`system/`, nur Dateien)
+### 3.3 Session Configuration (`system/`, files only)
 
-| Datei | Zweck |
-| --- | --- |
-| `greetd/config.toml` | Autologin des Benutzers `livingroomos` in `livingroomos-session`, Textanmeldung als Rückfall |
-| `bin/livingroomos-session` | startet labwc, startet ihn nach Abstürzen neu (höchstens 5 in 60 s) |
-| `labwc/autostart`, `labwc/rc.xml` | importiert `WAYLAND_DISPLAY`, startet `livingroomos.target`; Kiosk ohne Standardtastenkürzel, Home-Kürzel |
+| File | Purpose |
+|---|---|
+| `greetd/config.toml` | Automatic login for user `livingroomos` into `livingroomos-session`, with text login as a fallback |
+| `bin/livingroomos-session` | Starts labwc and restarts it after crashes (up to 5 crashes within 60 seconds) |
+| `labwc/autostart`, `labwc/rc.xml` | Imports `WAYLAND_DISPLAY`, starts `livingroomos.target`, configures kiosk mode without default keyboard shortcuts, and defines the Home shortcut |
 | `systemd/user/*` | `livingroomos-backend.service`, `livingroomos-shell.service`, `livingroomos.target` |
-| `google-chrome-stable/livingroomos.json` | Google Chrome-Richtlinien (keine Entwicklerwerkzeuge, kein Passwortmanager, keine Synchronisation) |
-| `bin/livingroomosctl` | kleines Werkzeug, spricht nur HTTP mit dem Backend (`home`, `status`, `wait`) |
+| `google-chrome-stable/livingroomos.json` | Google Chrome policies (developer tools disabled, password manager disabled, synchronization disabled) |
+| `bin/livingroomosctl` | Small utility that communicates with the backend over HTTP only (`home`, `status`, `wait`) |
 
-`tools/check_system.py` prüft ein System auf Voraussetzungen (Architektur, Python, Kernel, Pakete, Konfiguration).
+`tools/check_system.py` checks whether a system meets the requirements (architecture, Python, kernel, packages, and configuration).
 
-## 4. Kommunikation zwischen Frontend und Backend
+## 4. Communication Between Frontend and Backend
 
-Das Frontend spricht ausschließlich mit `http://127.0.0.1:8750`. Befehle sind REST-Aufrufe unter `/api/v1`, der Status
-wird abgefragt.
+The frontend communicates exclusively with `http://127.0.0.1:8750`. Commands use REST endpoints under `/api/v1`; status information is retrieved through polling.
 
-| Methode und Pfad | Zweck | Besondere Antworten |
-| --- | --- | --- |
-| `GET /api/v1/health` | Bereitschaft (wartet die Shell-Unit ab) | |
-| `GET /api/v1/system/status` | Version, Laufzeit, Architektur, Python, `config_problems`, App-Status | |
-| `GET /api/v1/apps` | App-Liste (ohne Befehle) und Status | |
+| Method and path | Purpose | Special responses |
+|---|---|---|
+| `GET /api/v1/health` | Readiness check (waits for the shell unit) | |
+| `GET /api/v1/system/status` | Version, uptime, architecture, Python version, `config_problems`, application status | |
+| `GET /api/v1/apps` | Application list (without commands) and status | |
 | `GET /api/v1/apps/status` | `state`, `app_id`, `pid`, `last_exit` | |
-| `POST /api/v1/apps/{id}/launch` | App starten | 202; 404 unbekannt; 409 `busy`; 422 `not_installed` |
-| `POST /api/v1/apps/stop` | aktive App beenden | |
-| `POST /api/v1/apps/{id}/stop` | nur diese App beenden | 409 `not_running`, wenn sie nicht läuft |
-| `GET /api/v1/settings`, `PATCH /api/v1/settings` | Oberflächeneinstellungen (`ui`) | 422 bei unbekannten Schlüsseln |
+| `POST /api/v1/apps/{id}/launch` | Start an application | 202; 404 unknown; 409 `busy`; 422 `not_installed` |
+| `POST /api/v1/apps/stop` | Stop the active application | |
+| `POST /api/v1/apps/{id}/stop` | Stop only the specified application | 409 `not_running` if it is not running |
+| `GET /api/v1/settings`, `PATCH /api/v1/settings` | Read and update interface settings (`ui`) | 422 for unknown keys |
 
-Regeln:
+Rules:
 
-- **Nur Absichten:** Das Frontend sendet eine App-ID. Programm, Argumente und Umgebung stammen ausschließlich aus
-  `settings.json` und sind in der Antwort nie enthalten.
-- **Idempotenz:** `launch` für die bereits laufende App liefert denselben Status. `launch` einer anderen App bei laufender
-  liefert 409 mit dem aktuellen Status; der Nutzer entscheidet im Dialog.
-- **Schreibschutz:** Alle schreibenden Aufrufe brauchen den Header `X-LivingroomOS: 1` (CSRF-Schutz). `TrustedHostMiddleware`
-  erlaubt nur `127.0.0.1` und `localhost` (DNS-Rebinding). Antworten tragen eine strikte Content-Security-Policy.
-- **Fehlerformat:** `{"error": {"code": "...", "message": "..."}}`, `message` ist für Menschen und nennt keine Interna.
-- **Versionierte Pfade** (`/api/v1`), damit ein späteres Netzwerk-Frontend (Handy) kompatibel bleiben kann.
-- **Statusabfrage:** 1,2 s während eine App startet oder läuft, 4 s im Leerlauf, mindestens 6 s bei verstecktem Fenster,
-  3 s bei Ausfall des Backends. `last_exit.seq` sorgt dafür, dass jedes Ende genau einmal gemeldet wird.
+- **Intent only:** The frontend sends an application ID. The executable, arguments, and environment come exclusively from `settings.json` and are never included in the response.
+- **Idempotency:** Launching an application that is already running returns the same status. Launching a different application while one is running returns 409 with the current status; the user decides what to do in the dialog.
+- **Write protection:** All write requests require the `X-LivingroomOS: 1` header (CSRF protection). `TrustedHostMiddleware` allows only `127.0.0.1` and `localhost` (DNS rebinding protection). Responses include a strict Content Security Policy.
+- **Error format:** `{"error": {"code": "...", "message": "..."}}`. The `message` is intended for humans and does not reveal internal details.
+- **Versioned paths** (`/api/v1`) allow a future network-based frontend (for example, a phone) to remain compatible.
+- **Status polling:** Every 1.2 seconds while an application is starting or running, every 4 seconds while idle, at least every 6 seconds while the window is hidden, and every 3 seconds if the backend is unavailable. `last_exit.seq` ensures that each application exit is reported exactly once.
 
-## 5. Prozessmanagement externer Anwendungen
+## 5. Process Management for External Applications
 
-Der Zustandsautomat des `ProcessManager`:
+The `ProcessManager` state machine:
 
-```
- idle ──start()──► starting ──(Startkarenzzeit überschritten)──► running
+```text
+ idle ──start()──► starting ──(startup grace period elapsed)──► running
    ▲                  │                                             │
-   │                  └───── Ende innerhalb der Karenzzeit ──────┐  │ stop() oder Ende
-   │                                                              ▼  ▼
-   └─────────────── Aufräumen, Ende melden (genau einmal) ◄── stopping
+   │                  └───── exits during grace period ─────────┐  │ stop() or exit
+   │                                                             ▼  ▼
+   └─────────────── cleanup, report exit (exactly once) ◄── stopping
 ```
 
-Ein Start ist nur aus `idle` möglich. Der Zustand wird **vor dem ersten `await` reserviert**, deshalb können auch
-gleichzeitige Anfragen keinen Doppelstart auslösen.
+A launch is only possible from `idle`. The state is **reserved before the first `await`**, so even simultaneous requests cannot trigger duplicate launches.
 
-**Start.** Der `AppLauncher` baut einen `LaunchSpec` (absoluter, geprüfter Pfad; Argumentliste; gefilterte Umgebung;
-Logdatei; Instanzkennung). Der `ProcessManager` ruft `asyncio.create_subprocess_exec` auf: nie eine Shell, `stdin` ist
-`/dev/null`, `start_new_session=True` (eigene Sitzung und Prozessgruppe), `umask 0077`, Ausgabe in
-`logs/<id>.log` (0600, Rotation bei 1 MiB).
+**Starting an application.** The `AppLauncher` builds a `LaunchSpec` (absolute, validated path; argument list; filtered environment; log file; instance identifier). The `ProcessManager` calls `asyncio.create_subprocess_exec`: never a shell, `stdin` is `/dev/null`, `start_new_session=True` (separate session and process group), `umask 0077`, and output is written to `logs/<id>.log` (0600, rotated at 1 MiB).
 
-**Überwachung.** Ein Beobachter-Task wartet auf das Ende des Prozesses. Das Ende wird klassifiziert:
+**Monitoring.** A watcher task waits for the process to exit. The exit is classified as follows:
 
-| Grund | Bedeutung |
-| --- | --- |
-| `stopped` | vom Nutzer oder Backend beendet |
-| `ok` | Exit-Code 0 nach der Karenzzeit |
-| `crashed` | Exit-Code ≠ 0 oder Signal nach der Karenzzeit |
-| `start_failed` | Ende innerhalb der Karenzzeit (bei Exit 0 nur, wenn die App dauerhaft laufen sollte) |
-| `ended` | übernommene App endete, Ursache unbekannt |
+| Reason | Meaning |
+|---|---|
+| `stopped` | Stopped by the user or backend |
+| `ok` | Exit code 0 after the grace period |
+| `crashed` | Exit code not equal to 0 or signal received after the grace period |
+| `start_failed` | Exit during the grace period (for exit code 0, only if the application was expected to run continuously) |
+| `ended` | Adopted application exited; cause unknown |
 
-Der Absturzdialog erscheint bei `crashed` und `start_failed`. Bei jedem Ende wird der Zustand `idle`, das Frontend zeigt
-den Launcher wieder, und optional holt `return_to_launcher_command` (zum Beispiel `wlrctl`) den Fokus zurück.
+The crash dialog appears for `crashed` and `start_failed`. Whenever an application exits, the state returns to `idle`, the frontend displays the launcher again, and the optional `return_to_launcher_command` (for example, `wlrctl`) can restore focus.
 
-**Beenden.** `stop()` sendet SIGTERM an die **Prozessgruppe** der App, nach `stop_timeout_s` SIGKILL. Google Chrome-Renderer, die
-die Gruppe verlassen, werden über den exakten Argumentwert `--user-data-dir=<Profil dieser App>` gefunden (nie über den
-Programmnamen) und mit `pidfd` beendet. Fremde Browserfenster bleiben dadurch unberührt. Jedes Signal prüft vorher
-Besitzer und Startzeit des Prozesses.
+**Stopping an application.** `stop()` sends SIGTERM to the application's **process group**, followed by SIGKILL after `stop_timeout_s`. Google Chrome renderer processes that have escaped the group are located using the exact argument value `--user-data-dir=<profile for this application>` (never by executable name alone) and terminated using `pidfd`. Other browser windows remain unaffected. Ownership and process start time are checked before every signal.
 
-**Identität.** Ein Prozess wird über `/proc/<pid>/stat` (Startzeit) und `pidfd_open` identifiziert. PID-Wiederverwendung
-führt daher nie zum Beenden eines fremden Prozesses.
+**Process identity.** A process is identified using `/proc/<pid>/stat` (start time) and `pidfd_open`. PID reuse therefore cannot cause an unrelated process to be terminated.
 
-**Backend-Absturz.** `state.json` (0600, im RAM unter `$XDG_RUNTIME_DIR`) hält PID und Startzeit der laufenden App. Ein neues
-Backend übernimmt sie, wenn diese Daten noch stimmen. Eine Sperrdatei (`flock`) verhindert zwei Backends. Mit dem Standard
-`KillMode=control-group` der Unit endet die App allerdings mit dem Backend; die Übernahme ist nur relevant, wenn der
-Administrator `KillMode=process` wählt (docs/SICHERHEIT.md).
+**Backend crash.** `state.json` (0600, stored in RAM under `$XDG_RUNTIME_DIR`) holds the PID and start time of the running application. A new backend can adopt it if the information is still valid. A lock file (`flock`) prevents two backend instances from running simultaneously. However, with the unit's default `KillMode=control-group`, the application exits together with the backend. Adoption is only relevant if the administrator selects `KillMode=process` (see `docs/SECURITY.md`).
 
-## 6. Boot- und Startkette
+## 6. Boot and Startup Sequence
 
-1. Firmware, Bootloader, Kernel, systemd.
-2. `greetd` startet beim Boot eine `initial_session` für den Benutzer `livingroomos`. PAM legt eine logind-Sitzung an;
-   dadurch gibt es `XDG_RUNTIME_DIR` und einen `systemd --user`-Manager.
-3. `livingroomos-session` startet `labwc` in einer Schleife. greetd führt die `initial_session` nur einmal pro Boot aus, deshalb
-   steckt die Neustart-Logik im Skript. Nach 5 Abstürzen innerhalb von 60 s endet das Skript, und greetd zeigt die
-   Textanmeldung.
-4. Der labwc-Autostart importiert `WAYLAND_DISPLAY` in den systemd-Benutzermanager und startet `livingroomos.target`.
-5. `livingroomos-backend.service` (Uvicorn), danach `livingroomos-shell.service` (Google Chrome im Kiosk-Modus; wartet per
-   `livingroomosctl wait` auf `/api/v1/health`). Beide mit `Restart=on-failure`. Die Shell-Unit hängt nur mit `After=` am
-   Backend, damit der Launcher bei einem Backend-Neustart offen bleibt und „Backend nicht erreichbar“ zeigt.
+1. Firmware, bootloader, kernel, systemd.
+2. `greetd` starts an `initial_session` for user `livingroomos` during boot. PAM creates a logind session, providing `XDG_RUNTIME_DIR` and a `systemd --user` manager.
+3. `livingroomos-session` starts `labwc` in a loop. greetd runs the `initial_session` only once per boot, so the restart logic is implemented in the script. After 5 crashes within 60 seconds, the script exits and greetd displays the text login.
+4. The labwc autostart imports `WAYLAND_DISPLAY` into the systemd user manager and starts `livingroomos.target`.
+5. `livingroomos-backend.service` (Uvicorn) starts first, followed by `livingroomos-shell.service` (Google Chrome in kiosk mode; waits for `/api/v1/health` using `livingroomosctl wait`). Both use `Restart=on-failure`. The shell unit depends on the backend only through `After=`, so the launcher remains open during a backend restart and displays "Backend unavailable".
 
-Die **Home-Taste** der Fernbedienung (`XF86HomePage`) ist ein labwc-Kürzel (`rc.xml`) und ruft `livingroomosctl home` auf. Das
-sendet `POST /api/v1/apps/stop`. Sendet die Fernbedienung keine Home-Taste, beendet `Strg+Alt+Pos1` die App.
+The remote control's **Home button** (`XF86HomePage`) is a labwc shortcut (`rc.xml`) that calls `livingroomosctl home`. This sends `POST /api/v1/apps/stop`. If the remote does not send a Home key, `Ctrl+Alt+Home` stops the application.
 
-Messziel: Launcher sichtbar in unter 15 s (NUC) beziehungsweise 25 s (Pi). Das ist eine Annahme und noch nicht gemessen.
+Target: launcher visible in under 15 seconds (NUC) or 25 seconds (Pi). These are assumptions and have not yet been measured.
 
-## 7. Sicherheit (Kurzfassung)
+## 7. Security (Summary)
 
-Das Backend lauscht nur auf Loopback und kennt keine Anmeldung, weil jeder, der Zugriff auf `127.0.0.1` hat, bereits Zugriff
-auf den Rechner hat. Geschützt wird gegen Fehlbedienung und gegen Webseiten im Browser (CSRF, DNS-Rebinding), nicht gegen
-Angreifer am Gerät. Kern der Maßnahmen: nur vordefinierte Programme, keine Shell, geprüfte Pfade und Rechte, gefilterte
-Umgebung, getrennte Browserprofile, verbotene Browser-Schalter, gezieltes Beenden. Vollständig: docs/SICHERHEIT.md.
+The backend listens only on loopback and does not use authentication, because anyone with access to `127.0.0.1` already has access to the computer. Protection is intended against accidental misuse and websites running in the browser (CSRF, DNS rebinding), not against an attacker with physical access to the device.
 
-## 8. Zielarchitektur\n\nLivingroomOS unterstützt ausschließlich `amd64` / x86_64. ARM-Prozessoren werden von `tools/check_system.py` abgewiesen.\n
+The core measures are: predefined applications only, no shell, validated paths and permissions, filtered environment, separate browser profiles, prohibited browser switches, and targeted process termination.
+
+For the complete security concept, see `docs/SECURITY.md`.
+
+## 8. Target Architecture
+
+LivingroomOS supports only `amd64` / x86_64. ARM processors are rejected by `tools/check_system.py`.
+
 ## 9. Tests
 
-| Datei | Prüft |
-| --- | --- |
-| `test_process_management.py` | echte Prozesse: Start, Stopp, SIGKILL, Prozessgruppe, Absturzarten, Logs, Doppelstart, Rechteprüfung, Profilordner, Nachzüglersuche, Backend-Sperre, Übernahme, PID-Wiederverwendung |
-| `test_settings_store.py` | Laden, Fehlermeldungen, atomares und paralleles Speichern |
-| `test_livingroomosctl.py` | Werkzeug gegen einen Testserver |
-| `test_project_consistency.py` | ausgelieferte Konfiguration, `requirements.txt`, Debian-Paketdokumentation, x86_64-Zielarchitektur, keine Netz-Installationsbefehle, Dokumentation, Verweise |
-| `test_api.py` | HTTP-Schnittstelle: Statuscodes, Header, Fehlerformat (braucht `fastapi` und `httpx`, sonst übersprungen) |
+| File | What it tests |
+|---|---|
+| `test_process_management.py` | Real processes: start, stop, SIGKILL, process groups, crash types, logs, duplicate-start prevention, permission checks, profile directories, finding remaining processes, backend lock, adoption, PID reuse |
+| `test_settings_store.py` | Loading, error handling, atomic and concurrent writes |
+| `test_livingroomosctl.py` | Utility tested against a test server |
+| `test_project_consistency.py` | Shipped configuration, `requirements.txt`, Debian package documentation, x86_64 target architecture, no network installation commands, required documentation and references |
+| `test_api.py` | HTTP interface: status codes, headers, error format (requires `fastapi` and `httpx`; otherwise skipped) |
 
-Die Oberfläche wurde in der Entwicklung mit Playwright und Google Chrome geprüft (Navigation, Dialoge, Abstürze, Offline). Diese
-Skripte gehören nicht zum Projekt, weil sie Playwright voraussetzen.
+During development, the interface was tested with Playwright and Google Chrome (navigation, dialogs, crashes, offline behavior). These scripts are not part of the project because they require Playwright.
 
-## 10. Wichtige Entscheidungen und Begründungen
+## 10. Important Decisions and Rationale
 
-| Entscheidung | Begründung | Alternative |
-| --- | --- | --- |
-| labwc statt Desktop oder Cage | schlanker Wayland-Compositor mit Tastenkürzeln und Fensterregeln; kein Desktop nötig | Cage (zu starr für Kürzel) |
-| greetd statt GDM/SDDM | kleiner Autologin ohne grafischen Greeter | getty-Autologin plus Profilskript |
-| Google Chrome als einziger Browser | alle Zieldienste sind Webseiten; ein Browser, getrennte Profile | Firefox (zweites Profilmodell) |
-| Python 3 + FastAPI + Uvicorn | in Debian paketiert, für x86_64 vorgesehen, geringe Last | Go-Binary (zweite Toolchain) |
-| Frontend ohne Framework und Build | weniger Speicher und Angriffsfläche, nichts zu kompilieren | Preact/Vite |
-| Prozessmanagement nur mit Standardbibliothek | keine Abhängigkeit, gut testbar mit echten Prozessen | `psutil` |
-| Ein Vordergrundprogramm | Fokus und Rückkehr eindeutig, weniger RAM | mehrere Fenster |
-| Loopback, kein Netzwerkzugriff | kleinste Angriffsfläche | LAN-Fernsteuerung (später) |
-| Konfiguration in JSON | `json` ist in der Standardbibliothek; vom Projektauftrag so vorgegeben (`settings.json`) | TOML |
-| Pakete aus Debian statt PyPI als Standardweg | eine Quelle, Sicherheitsupdates über `apt` | venv mit pip (Variante B) |
-| Programmcode unter `/opt` gehört root | die Anwendung kann sich nicht selbst verändern | Installation im Benutzerverzeichnis |
+| Decision | Rationale | Alternative |
+|---|---|---|
+| labwc instead of a desktop environment or Cage | Lightweight Wayland compositor with keyboard shortcuts and window rules; no desktop required | Cage (too restrictive for shortcuts) |
+| greetd instead of GDM/SDDM | Lightweight automatic login without a graphical greeter | getty autologin plus profile script |
+| Google Chrome as the only browser | All target services are websites; one browser with separate profiles | Firefox (a second profile model) |
+| Python 3 + FastAPI + Uvicorn | Available as Debian packages, intended for x86_64, low overhead | Go binary (additional toolchain) |
+| Frontend without a framework or build step | Less memory usage and attack surface; nothing to compile | Preact/Vite |
+| Process management using only the standard library | No extra dependency; easy to test with real processes | `psutil` |
+| One foreground application | Predictable focus and return behavior, lower RAM usage | Multiple windows |
+| Loopback only, no network access | Smallest attack surface | LAN remote control (future) |
+| JSON configuration | `json` is part of the standard library; required by the project specification (`settings.json`) | TOML |
+| Debian packages instead of PyPI by default | One package source; security updates through `apt` | Virtual environment with pip (Option B) |
+| Program code under `/opt` owned by root | The application cannot modify itself | Installation in the user's home directory |
 
-## 11. Abweichungen vom ursprünglichen Entwurf
+## 11. Differences from the Original Design
 
-Der erste Entwurf war ein Zielbild. Die Umsetzung ist ein Prototyp, der es in kleineren Schritten erreicht. Die Abweichungen
-und ihre Gründe:
+The first design was a target architecture. The implementation is a prototype that approaches it incrementally. The differences and their reasons are documented below:
 
-| Entwurf | Umsetzung | Begründung |
-| --- | --- | --- |
-| Apps als transiente systemd-Units (`systemd-run`), `livingroomos-apps.slice`, `MemoryMax` | direkter Start mit `create_subprocess_exec`, eigene Prozessgruppe, Beenden über Signale | Vorgabe des Auftrags („subprocess ohne shell=True“, PIDs überwachen, gezielt beenden); testbar ohne systemd; der `LaunchSpec` bleibt als Schnittstelle, ein Runner mit `systemd-run` kann ihn später ersetzen. **Folge:** keine Speichergrenze und keine cgroup-Kontrolle über Google Chrome-Helferprozesse, ausgeglichen durch Prozessgruppe und Nachzüglersuche. |
-| SSE-Strom `/api/v1/events` mit Snapshot | Abfrage von `/apps/status` (1,2 s bis 6 s) | SSE braucht eine dauerhafte Verbindung, Ereignisbus und Wiederverbindungslogik. Für einen Zustand, der sich selten ändert, ist die Abfrage einfacher und in 4 s Leerlauf billig. **Folge:** bis zu 1,2 s Verzögerung bei Zustandsänderungen. Ersetzbar, ohne den Vertrag zu ändern. |
-| Paket `livingroomos/` mit `registry`, `supervisor`, `launchers`, `runner`, `compositor`, `events`, `platform`, `security`, `config` | flache Module `api/`, `services/` mit den vom Auftrag vorgegebenen Dateinamen | Der Auftrag legte die Dateien fest. Die Verantwortlichkeiten sind trotzdem getrennt (Konfigurationsprüfung und Befehlsbau im `AppLauncher`, Prozesslebenszyklus im `ProcessManager`). |
-| Konfiguration als TOML mit Pydantic und Schichten (`/etc`, Benutzer) | eine JSON-Datei, im Betrieb unter `~/.config/livingroomos/settings.json` (`LIVINGROOMOS_CONFIG`) | Der Auftrag nannte `settings.json`. Die Prüfung steckt in `parse_apps`. |
-| Endpunkte `/state`, `/home`, `/session/foreground/stop`, `/audio/volume`, `/system/power`, `/events` | `/apps/status`, `/apps/stop`, `/apps/{id}/stop`, `/system/status`, `/settings` | Nur das, was der Prototyp braucht. Audio und Energie sind nicht umgesetzt. |
-| Fehlerformat RFC 9457 | `{"error": {"code", "message"}}` | Einfacher für das Frontend; gleiche Information. |
-| Sicherheits-Middleware mit Origin-Prüfung und JSON-Pflicht | Host-Prüfung plus Pflichtheader `X-LivingroomOS` | Der eigene Header erfüllt den CSRF-Schutz ohne Origin-Auswertung. |
-| Compositor-Bridge als eigenes Modul (`WlrctlBridge`) | optionaler Rückkehr-Befehl `server.return_to_launcher_command` | Der Fokus fällt nach dem Schließen des App-Fensters meist von selbst zurück; der Befehl ist nur ein Zusatz. |
-| Frontend `main.js`, `nav.js`, `events.js`, `store.js`, `views/`, `components/` | `app.js`, `navigation.js`, `remote.js`, `api.js` | Dateinamen vom Auftrag vorgegeben. |
-| `platform/`-Profile für Architekturen | keine; Architektur steht nur im Systemstatus | Bisher gibt es nichts Architekturabhängiges. Profile werden ergänzt, wenn Messungen auf dem Pi es verlangen. |
+| Original design | Implementation | Reason |
+|---|---|---|
+| Applications as transient systemd units (`systemd-run`), `livingroomos-apps.slice`, `MemoryMax` | Direct launch with `create_subprocess_exec`, separate process group, termination using signals | Project requirement ("subprocess without `shell=True`", monitor PIDs, targeted termination); testable without systemd. `LaunchSpec` remains the interface, so a runner using `systemd-run` can replace it later. **Consequence:** no memory limit and no cgroup control over Google Chrome helper processes; mitigated by process groups and finding remaining processes. |
+| SSE stream `/api/v1/events` with snapshot | Polling `/apps/status` (1.2 to 6 seconds) | SSE requires a persistent connection, event bus, and reconnection logic. For state that changes infrequently, polling is simpler and inexpensive at 4-second idle intervals. **Consequence:** up to 1.2 seconds of delay for state changes. Can be replaced without changing the API contract. |
+| Package `livingroomos/` with `registry`, `supervisor`, `launchers`, `runner`, `compositor`, `events`, `platform`, `security`, `config` | Flat `api/` and `services/` modules using the filenames specified by the project requirements | The required filenames were specified by the project. Responsibilities are still separated (configuration validation and command construction in `AppLauncher`, process lifecycle in `ProcessManager`). |
+| TOML configuration with Pydantic and layers (`/etc`, user) | One JSON file, used at runtime from `~/.config/livingroomos/settings.json` (`LIVINGROOMOS_CONFIG`) | The project specified `settings.json`. Validation is implemented in `parse_apps`. |
+| Endpoints `/state`, `/home`, `/session/foreground/stop`, `/audio/volume`, `/system/power`, `/events` | `/apps/status`, `/apps/stop`, `/apps/{id}/stop`, `/system/status`, `/settings` | Only what the prototype needs. Audio and power management were not implemented in this version. |
+| RFC 9457 error format | `{"error": {"code", "message"}}` | Simpler for the frontend; conveys the same information. |
+| Security middleware with Origin validation and JSON requirement | Host validation plus required `X-LivingroomOS` header | The custom header provides CSRF protection without Origin evaluation. |
+| Separate compositor bridge module (`WlrctlBridge`) | Optional `server.return_to_launcher_command` | Focus usually returns automatically after the application window closes; the command is an additional measure. |
+| Frontend `main.js`, `nav.js`, `events.js`, `store.js`, `views/`, `components/` | `app.js`, `navigation.js`, `remote.js`, `api.js` | Filenames were specified by the project requirements. |
+| `platform/` profiles for architectures | None; architecture is only included in system status | There is currently nothing architecture-specific. Profiles can be added if measurements on the Pi require them. |
 
-Unverändert aus dem Entwurf: das Ein-Vordergrundprogramm-Prinzip, die Startkette greetd → `livingroomos-session` → labwc →
-`livingroomos.target`, die zwei Units, `livingroomosctl`, loopback-only, versionierte Pfade, Idempotenz und 409 bei Konflikt,
-getrennte Browserprofile.
+Unchanged from the original design: the single-foreground-application principle, the startup chain greetd → `livingroomos-session` → labwc → `livingroomos.target`, the two units, `livingroomosctl`, loopback-only access, versioned paths, idempotency, and HTTP 409 on conflicts.
 
-## 12. Ressourcen und Risiken
+## 12. Resources and Risks
 
-| Thema | Einschätzung und Gegenmaßnahme |
-| --- | --- |
-| Arbeitsspeicher | Google Chrome ist der größte Verbraucher (Launcher und App zusammen mehrere hundert MB). Nur ein Vordergrundprogramm; auf dem Pi `zram-tools`. Keine harte Grenze (siehe Abweichung zu `MemoryMax`). |
-| CPU im Leerlauf | Backend wartet; Abfrage nur alle 4 s; Animationen sind kurz und rein CSS. |
-| Widevine (Streaming-Anbieter) | Das Debian-Google Chrome enthält kein Widevine. Streaming-Anbieter-Wiedergabe ist **nicht zugesichert**; das Projekt installiert kein Widevine. |
-| Hardware-Videodekodierung | auf dem NUC über VA-API möglich, auf dem Pi nicht zugesichert. Messen. |
-| Rettung bei Fehlkonfiguration | Das Kiosk-labwc sperrt Konsolenwechsel. SSH ist der Rettungsweg und gehört zur Installation. |
-| App und Backend teilen eine UID | eine kompromittierte App könnte das Backend beeinflussen. Weitere Isolation: `systemd-run` mit Sandboxing (siehe Ausblick). |
-| Ungetestete Systemdateien | `system/` (greetd, labwc, systemd) ist nach Dokumentation geschrieben, aber nicht auf Hardware geprüft. |
+| Topic | Assessment and mitigation |
+|---|---|
+| Memory usage | Google Chrome is the largest consumer (launcher and application together use several hundred MB). Only one foreground application is allowed; use `zram-tools` on the Pi. No hard memory limit is configured (see the difference regarding `MemoryMax`). |
+| Idle CPU usage | The backend waits; polling occurs every 4 seconds; animations are short and CSS-only. |
+| Widevine (streaming services) | Debian's Google Chrome package does not include Widevine. Playback by streaming services is **not guaranteed**; the project does not install Widevine. |
+| Hardware video decoding | VA-API may be available on the NUC; it is not guaranteed on the Pi. Measure on the target hardware. |
+| Recovery from misconfiguration | Kiosk labwc disables console switching. SSH is the recovery path and should be included in the installation. |
+| Application and backend share a UID | A compromised application could affect the backend. Further isolation could use `systemd-run` with sandboxing (see future work). |
+| Untested system files | `system/` (greetd, labwc, systemd) was written based on documentation but has not been tested on physical hardware. |
 
-## 13. Ausblick
+## 13. Future Work
 
-- Apps als transiente systemd-Units mit `MemoryMax` und Sandboxing. Nur der Runner im `ProcessManager` ändert sich.
-- Statusereignisse per SSE statt Abfrage.
-- Plattformprofile (Google Chrome-Flags je Gerät) nach Messungen auf dem x86_64-PC.
-- Audio (Lautstärke) und Energie (Ausschalten, Neustart) als eigene, kleine Dienste.
+- Run applications as transient systemd units with `MemoryMax` and sandboxing. Only the runner in `ProcessManager` needs to change.
+- Use SSE for status events instead of polling.
+- Add platform profiles (Google Chrome flags per device) after measurements on x86_64 PCs.
+- Implement audio (volume control) and power management (shutdown, restart) as separate, small services.
