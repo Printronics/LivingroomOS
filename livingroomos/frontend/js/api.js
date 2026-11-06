@@ -69,5 +69,4 @@ export const api = {
   saveSettings: (patch) => request("PATCH", "/settings", { body: patch }),
   system: () => request("GET", "/system/status"),
   power: (action) => request("POST", `/system/power/${action}`, { timeout: 5000 }),
-  power: (action) => request("POST", `/system/power/${action}`, { timeout: 5000 }),
 };
