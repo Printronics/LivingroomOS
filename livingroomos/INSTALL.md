@@ -87,10 +87,8 @@ Install the required Debian packages:
 ```bash
 sudo apt install -y \
     python3 \
-    python3-venv \
-    python3-pip \
-    python3-dev \
-    build-essential \
+    python3-fastapi \
+    python3-uvicorn \
     labwc \
     greetd \
     systemd \
@@ -219,28 +217,24 @@ Do not make `/opt/livingroomos` writable by the `livingroomos` user.
 
 ## 7. Set up the Python environment
 
-Create the virtual environment as root so that the application runtime cannot modify its installed Python packages:
+The recommended production setup uses Debian 13 packages. The required Python packages `python3-fastapi` and `python3-uvicorn` are installed in Section 3 and listed in `debian-packages.txt`.
+
+Verify that the system Python can import them:
 
 ```bash
-sudo python3 -m venv /opt/livingroomos/.venv
+python3 -c "import fastapi, uvicorn; print('Python dependencies are available')"
 ```
 
-Install the Python dependencies.
-
-If the project contains `requirements.txt`, use:
+A virtual environment is optional. If you intentionally prefer the isolated pip-based setup, install `python3-venv` and create a root-owned environment:
 
 ```bash
+sudo apt install -y python3-venv
+sudo python3 -m venv /opt/livingroomos/.venv
 sudo /opt/livingroomos/.venv/bin/pip install \
     -r /opt/livingroomos/requirements.txt
 ```
 
-If no requirements file is available, the backend at minimum requires FastAPI and Uvicorn:
-
-```bash
-sudo /opt/livingroomos/.venv/bin/pip install fastapi uvicorn
-```
-
-Do not install Python packages globally with `sudo pip`.
+The `run.sh` entry point automatically uses `/opt/livingroomos/.venv` when that environment exists; otherwise it uses Debian's system Python. Keep the virtual environment root-owned and do not install Python packages globally with `sudo pip`.
 
 The service account needs permission to execute the virtual environment, but it must not have permission to modify it.
 
@@ -323,8 +317,7 @@ Run the system checker:
 
 ```bash
 sudo -u livingroomos \
-    /opt/livingroomos/.venv/bin/python \
-    -B /opt/livingroomos/tools/check_system.py
+    python3 -B /opt/livingroomos/tools/check_system.py
 ```
 
 Review any missing dependencies or configuration warnings.
@@ -480,10 +473,16 @@ After the first successful startup, test the following:
 
 ### The backend does not start
 
-Check the Python environment:
+Check that the system Python dependencies are available:
 
 ```bash
-ls -la /opt/livingroomos/.venv/bin/python
+python3 -c "import fastapi, uvicorn"
+```
+
+If you chose the optional virtual-environment setup, check its interpreter instead:
+
+```bash
+/opt/livingroomos/.venv/bin/python -c "import fastapi, uvicorn"
 ```
 
 Check the settings file:
