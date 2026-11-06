@@ -20,7 +20,7 @@ Zielsystem: **Debian 13 „trixie“ auf `amd64` / x86_64 (Intel/AMD)**. ARM wir
 | `systemd` | Dienste (Benutzer-Units) | auf Debian vorhanden |
 | `dbus-user-session` | startet `systemd --user` je Sitzung | ohne dieses Paket laufen die Benutzer-Units nicht |
 | `libpam-systemd` | logind-Sitzung | gibt dem Benutzer Zugriff auf GPU und Eingabegeräte |
-| `polkitd` | Autorisierung der Power-Aktionen | die Projektregel erlaubt nur Neustart und Herunterfahren für `livingroomos` |
+| `polkitd` | Autorisierung von Neustart und Herunterfahren | verwendet die Debian-/systemd-Standardrichtlinie; keine eigene LivingroomOS-Polkit-Regel vorhanden |
 | `pipewire` | Audio | |
 | `pipewire-pulse` | Audio-Kompatibilität | Google Chrome spricht PulseAudio |
 | `wireplumber` | PipeWire-Sitzungsverwaltung | |
@@ -66,14 +66,18 @@ Zielsystem: **Debian 13 „trixie“ auf `amd64` / x86_64 (Intel/AMD)**. ARM wir
 | `~/.local/share/livingroomos/profiles/<id>/` | Browserprofile, Modus 0700 |
 | `~/.local/share/livingroomos/logs/<id>.log` | Ausgabe der Apps, Modus 0600, Rotation bei 1 MiB |
 | `$XDG_RUNTIME_DIR/livingroomos/` | `backend.lock` und `state.json`, Modus 0700 (liegt im RAM) |
-| `/etc/systemd/user/livingroomos*.{service,target}` | Benutzer-Units, gehören `root` |
+| `/var/lib/livingroomos/.config/systemd/user/livingroomos*.{service,target}` | Benutzer-Units für das dedizierte Konto `livingroomos`; gehören diesem Benutzer |
 | `/etc/greetd/config.toml` | Autologin-Konfiguration, gehört `root` |
 | `/etc/opt/chrome/policies/managed/livingroomos.json` | Google Chrome-Richtlinien, gehört `root` |
 
 Netzwerk: Das Backend lauscht **nur** auf `127.0.0.1:8750`. Es gibt keinen eingehenden Port nach außen. Die Apps
 brauchen ausgehende Verbindungen (HTTPS).
 
-## 5. Zielarchitektur\n\nUnterstützt wird ausschließlich `amd64` / x86_64. Die Systemprüfung lehnt ARM-Prozessoren ab.\n\n## 6. Installationsquellen
+## 5. Zielarchitektur
+
+Unterstützt wird ausschließlich `amd64` / x86_64. Die Systemprüfung lehnt ARM-Prozessoren ab.
+
+## 6. Installationsquellen
 
 Debian-Systempakete stammen aus dem offiziellen Debian-Archiv über `apt`. Google Chrome wird separat als offizielles 64-Bit-`.deb` des Herstellers installiert. Das Projekt lädt keine Skripte aus dem Netz, nutzt
 kein `curl | sh` und fügt keine Fremd-Repositories hinzu. Der optionale pip-Weg (`requirements.txt`) bezieht
