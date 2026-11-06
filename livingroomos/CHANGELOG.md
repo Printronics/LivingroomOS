@@ -1,119 +1,110 @@
 # Changelog
 
-Alle Änderungen an LivingroomOS. Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionierung nach
-[Semantic Versioning](https://semver.org/lang/de/). Die Versionsnummer steht an genau einer Stelle: `backend/version.py`.
+All notable changes to LivingroomOS are documented in this file.
 
-Hinweis: Die Versionen 0.1.0 bis 0.4.0 wurden während der Entwicklung nicht einzeln veröffentlicht. Sie sind hier
-nachträglich aus den Entwicklungsschritten abgeleitet, damit jede Änderung nachvollziehbar bleibt. Dateien, die von einem
-Schritt betroffen sind, stehen jeweils dabei.
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versioning follows [Semantic Versioning](https://semver.org/).
+
+The version number is defined in exactly one place: `backend/version.py`.
+
+**Note:** Versions 0.1.0 through 0.4.0 were not released individually during development. They have been reconstructed retrospectively from the development steps so that each change remains traceable. Files affected by each step are listed where applicable.
 
 ## [0.6.0] – 2026-11-06
 
-### Geändert
-- Projekt vollständig in LivingroomOS umbenannt: Verzeichnisse, Dateien, Dienste, Konfiguration, Umgebungsvariablen und API-Header.
-- Zielplattform auf Debian 13 `amd64` / x86_64 begrenzt; ARM-Zielprofile und Installationshinweise entfernt.
-- Browseraufrufe auf `google-chrome-stable` umgestellt; Chrome wird separat über das offizielle Herstellerpaket installiert und nicht mitgeliefert.
-- Standard-Apps auf neutrale, editierbare Web-App-Beispiele umgestellt; keine fremden Logos, Grafiken oder Anbieterassets eingebettet.
-- Einstellungsoberfläche in Allgemein, System und Debug gegliedert; zusätzliche Anzeigeoptionen und reduzierte Animationen ergänzt.
-- Testanwendungen aus dem Startmenü entfernt und in den Debug-Reiter verschoben.
-- Neustart und Herunterfahren über fest erlaubte Backend-Aktionen ergänzt; Berechtigung wird eng auf den LivingroomOS-Dienstbenutzer und die zwei lokalen Power-Aktionen begrenzt.
-- Installations-, Abhängigkeits-, Sicherheits- und Architektur-Dokumentation aktualisiert.
+### Changed
 
-### Prüfung
-- Konsistenztests: 21/21 bestanden.
-- API-/Prozessstarttests in dieser Entwicklungsumgebung teilweise durch die unsicheren Dateirechte des vorgegebenen Python-Virtualenv-Interpreters blockiert; auf einem regulären Debian-13-System erneut ausführen.
-- Kiosk-/Power-Integration muss auf echter Hardware geprüft werden.
+- Renamed the entire project to LivingroomOS: directories, files, services, configuration, environment variables, and API headers.
+- Restricted the target platform to Debian 13 `amd64` / x86_64; removed ARM target profiles and installation instructions.
+- Switched browser launches to `google-chrome-stable`; Chrome is installed separately using the official vendor package and is not bundled with the project.
+- Replaced the default applications with neutral, editable web application examples; no third-party logos, graphics, or provider assets are embedded.
+- Reorganized the settings interface into General, System, and Debug sections; added additional display options and reduced-motion support.
+- Removed test applications from the main launcher and moved them to the Debug tab.
+- Added restart and shutdown through explicitly permitted backend actions; permissions are narrowly restricted to the LivingroomOS service user and the two local power actions.
+- Updated the installation, dependency, security, and architecture documentation.
+
+### Verification
+
+- Consistency tests: 21/21 passed.
+- API and process-start tests were partially blocked in this development environment by the unsafe file ownership of the supplied Python virtual environment interpreter; run them again on a regular Debian 13 system.
+- Kiosk and power-management integration must be tested on real hardware.
 
 ## [0.5.0] – 2026-11-04
 
-Projekt als eigenständig installierbarer Ordner: Dokumentation, Systemdateien, Abhängigkeitslisten, Tests.
+Standalone, installable project directory containing documentation, system files, dependency lists, and tests.
 
-### Hinzugefügt
-- `README.md`: Beschreibung, Schnellstart, Bedienung, Tests, Struktur, Konfiguration, HTTP-Schnittstelle, Teststatus.
-- `INSTALL.md`: vollständige Installation auf Debian 13 (amd64, x86_64), Prüfung, Fehlersuche, Update, Rückbau.
-- `ARCHITECTURE.md`: tatsächlich umgesetzte Architektur; Abweichungen vom ersten Entwurf mit Begründung.
-- `CHANGELOG.md`: diese Datei.
-- `docs/SYSTEMABHAENGIGKEITEN.md`: alle Debian-Pakete, Kernel- und Python-Anforderungen, Verzeichnisse, Rechte, x86_64-Systemdetails.
-- `debian-packages.txt`, `debian-packages-optional.txt`: maschinenlesbare Paketlisten, nur aus dem Debian-Archiv.
-- `requirements.txt`, `requirements-dev.txt`: Python-Abhängigkeiten (Laufzeit und Tests), jeweils mit Begründung.
-- `backend/version.py`: einzige Quelle der Versionsnummer, genutzt von `main.py` und vom Systemstatus.
-- `system/greetd/config.toml`, `system/bin/livingroomos-session`, `system/labwc/autostart`, `system/labwc/rc.xml`,
-  `system/systemd/user/livingroomos-backend.service`, `livingroomos-shell.service`, `livingroomos.target`,
-  `system/chrome/livingroomos.json`: Dateien für den Fernseher-Betrieb (noch nicht auf Hardware geprüft).
-- `system/bin/livingroomosctl`: HTTP-Werkzeug für Tastenkürzel (`home`, `status`, `wait`), nur Standardbibliothek.
-- `tools/check_system.py`: Systemprüfung für ausschließlich x86_64, ändert nichts am System.
-- Tests: `backend/tests/test_api.py`, `test_settings_store.py`, `test_livingroomosctl.py`, `test_project_consistency.py`.
-  Letzterer erzwingt Projektregeln automatisch: jede Python-Abhängigkeit in `requirements.txt`, jedes Debian-Paket
-  dokumentiert, keine Architekturnamen im Code, keine Skripte mit Netz-Installation, Pflichtdokumente und Verweise vorhanden.
+### Added
 
-### Geändert
-- `run.sh`: nutzt `.venv`, falls vorhanden; Port über `LIVINGROOMOS_PORT`.
-- `backend/main.py`: Konfigurationspfad über `LIVINGROOMOS_CONFIG` einstellbar; Version aus `version.py`.
+- `README.md`: project description, quick start, controls, tests, structure, configuration, HTTP interface, and testing status.
+- `INSTALL.md`: complete installation on Debian 13 (amd64, x86_64), verification, troubleshooting, updates, and removal.
+- `ARCHITECTURE.md`: description of the implemented architecture and justified differences from the initial design.
+- `CHANGELOG.md`: this file.
+- `docs/SYSTEM_DEPENDENCIES.md`: all Debian packages, kernel and Python requirements, directories, permissions, and x86_64 system details.
+- `debian-packages.txt`, `debian-packages-optional.txt`: machine-readable package lists containing packages from the Debian archive only.
+- `requirements.txt`, `requirements-dev.txt`: Python dependencies for runtime and tests, each with an explanation.
+- `backend/version.py`: single source of the version number, used by `main.py` and the system status endpoint.
+- `system/greetd/config.toml`, `system/bin/livingroomos-session`, `system/labwc/autostart`, `system/labwc/rc.xml`, `system/systemd/user/livingroomos-backend.service`, `livingroomos-shell.service`, `livingroomos.target`, `system/chrome/livingroomos.json`: files for TV operation (not yet tested on physical hardware).
+- `system/bin/livingroomosctl`: HTTP utility for keyboard shortcuts (`home`, `status`, `wait`), using only the standard library.
+- `tools/check_system.py`: system checker for x86_64 only; does not modify the system.
+- Tests: `backend/tests/test_api.py`, `test_settings_store.py`, `test_livingroomosctl.py`, `test_project_consistency.py`. The latter automatically enforces project rules: every Python dependency must be listed in `requirements.txt`, every Debian package must be documented, architecture names must not appear in application code, scripts must not perform network-based installations, and required documents and references must exist.
 
-### Bekannte Einschränkungen
-- `test_api.py` wurde in der Entwicklungsumgebung nicht ausgeführt (kein `fastapi` installierbar), nur geschrieben.
-- `system/` und die Streaming-Anbieter-Wiedergabe sind auf echter Hardware ungeprüft; ARM wird nicht unterstützt.
+### Changed
+
+- `run.sh`: uses `.venv` if available; port can be configured through `LIVINGROOMOS_PORT`.
+- `backend/main.py`: configuration path can be set through `LIVINGROOMOS_CONFIG`; version is read from `version.py`.
+
+### Known Limitations
+
+- `test_api.py` was not executed in the development environment because `fastapi` could not be installed; it was written but not run.
+- `system/` and playback on streaming services have not been tested on physical hardware; ARM is not supported.
 
 ## [0.4.0] – 2026-11-04
 
-Navigationssystem für Fernseher.
+TV-oriented navigation system.
 
-### Geändert
-- `frontend/js/navigation.js`: neu geschrieben als eigenständiges Modul. Räumliche Navigation nach Geometrie, feste Ziele
-  über `data-nav-*`, Fokusgedächtnis je Bereich, automatische Fokus-Wiederherstellung, Enter-Sperre nach neuem Dialog,
-  Schutz vor Doppelauslösung, Randhinweis, `Tab` als „nächstes Element“.
-- `frontend/js/remote.js`: neu geschrieben. Tastenbelegung für Tastatur, HID-Fernbedienungen (`BrowserBack`, `BrowserHome`,
-  `ContextMenu`) und TV-Browser (Android TV, Tizen, webOS); Drosselung gehaltener Richtungstasten, Entprellung, kein
-  Auslösen durch Auto-Repeat, `bind`/`emit` für neue Fernbedienungen und andere Eingabequellen.
-- `frontend/js/app.js`: `next`/`prev`, `data-repeatable` für Einstellungszeilen, Speichern von Einstellungen gegen
-  Überholen durch spätere Tastendrücke abgesichert.
-- `frontend/css/main.css`: Fokusring als Rückfall für jedes anwählbare Element, Randanimation.
+### Changed
+
+- `frontend/js/navigation.js`: rewritten as a standalone module. Geometry-based spatial navigation, fixed targets through `data-nav-*`, focus memory for each area, automatic focus restoration, Enter-key lock after opening a new dialog, protection against duplicate activation, edge indicators, and `Tab` as "next element".
+- `frontend/js/remote.js`: rewritten. Key mappings for keyboards, HID remote controls (`BrowserBack`, `BrowserHome`, `ContextMenu`), and TV browsers (Android TV, Tizen, webOS); throttling of held direction keys, debouncing, no activation through auto-repeat, and `bind`/`emit` support for new remote controls and other input sources.
+- `frontend/js/app.js`: `next`/`prev`, `data-repeatable` for settings rows, and protection against settings writes being overtaken by later key presses.
+- `frontend/css/main.css`: focus ring fallback for every selectable element, edge animation.
 - `frontend/css/layout.css`: `scroll-padding`.
 
-### Hinzugefügt
-- `frontend/dev/navigation-demo.html`, `demo.js`, `demo.css`: Demo und Tastentest ohne Backend; zeigt `key`, `code` und
-  `keyCode` jeder Taste, um neue Fernbedienungen zuzuordnen.
+### Added
+
+- `frontend/dev/navigation-demo.html`, `demo.js`, `demo.css`: standalone navigation demo and keyboard test without the backend; displays the `key`, `code`, and `keyCode` of every key to help map new remote controls.
 
 ## [0.3.0] – 2026-11-03
 
-Sicheres Prozessmanagement.
+Secure process management.
 
-### Hinzugefügt
-- `docs/SICHERHEIT.md`: Sicherheitskonzept (Schutzziele, Bedrohungsmodell, Maßnahmen, Berechtigungen, Härtung, Restrisiken).
-- `backend/tests/test_process_management.py`: 22 Tests mit echten Prozessen.
-- `POST /api/v1/apps/{id}/stop`: beendet nur die genannte App.
+### Added
 
-### Geändert
-- `backend/services/process_manager.py`: neu geschrieben. Prozessgruppe und eigene Sitzung, Identitätsprüfung über
-  `/proc`-Startzeit und `pidfd`, Doppelstart-Sperre, Absturzklassifikation (`stopped`, `ok`, `crashed`, `start_failed`,
-  `ended`), Nachzüglersuche über exakten `--user-data-dir`-Wert, Logdateien mit Rotation, Backend-Sperre, Zustandsdatei und
-  Übernahme nach Backend-Absturz.
-- `backend/services/app_launcher.py`: neu geschrieben. Konfigurationsprüfung (Platzhalter, verbotene Schalter, Browser
-  brauchen eigenes Profil, Umgebungsvariablen), Pfad-, Besitzer- und Rechteprüfung, vertrauenswürdige Verzeichnisse,
-  gefilterte Umgebung, Rückkehr zum Launcher.
-- `backend/main.py`: Lebenszyklus mit Sperre und geordnetem Beenden.
-- `backend/api/apps.py`: neue Stopp-Route.
+- `docs/SECURITY.md`: security concept (security objectives, threat model, measures, permissions, hardening, residual risks).
+- `backend/tests/test_process_management.py`: 22 tests using real processes.
+- `POST /api/v1/apps/{id}/stop`: stops only the specified application.
+
+### Changed
+
+- `backend/services/process_manager.py`: rewritten. Process groups and separate sessions, process identity validation using `/proc` start time and `pidfd`, duplicate-start prevention, crash classification (`stopped`, `ok`, `crashed`, `start_failed`, `ended`), remaining-process detection using the exact `--user-data-dir` value, log files with rotation, backend lock, state file, and recovery after a backend crash.
+- `backend/services/app_launcher.py`: rewritten. Configuration validation (placeholders, prohibited switches, browsers require their own profile, environment variables), path, ownership and permission checks, trusted directories, filtered environment, and return to the launcher.
+- `backend/main.py`: lifecycle management with locking and orderly shutdown.
+- `backend/api/apps.py`: new stop route.
 - `backend/config/settings.json`: `trusted_bin_dirs`, `startup_grace_s`, `stop_timeout_s`, `return_to_launcher_command`.
 
 ## [0.2.0] – 2026-11-03
 
-Lauffähiger Minimalprototyp.
+Working minimal prototype.
 
-### Hinzugefügt
-- Frontend: `frontend/index.html`, `css/main.css`, `css/layout.css`, `js/app.js`, `js/navigation.js`, `js/remote.js`,
-  `js/api.js`. Dunkle TV-Oberfläche, große Kacheln, Bedienung mit Pfeiltasten, Enter und Escape, Fokuszustände, Dialoge für
-  Start, Absturz und fehlendes Backend.
-- Backend: `backend/main.py`, `api/apps.py`, `api/system.py`, `api/settings.py`, `services/app_launcher.py`,
-  `services/process_manager.py`, `services/settings_store.py`, `config/settings.json`, `requirements.txt`, `run.sh`.
-  Lokale HTTP-Schnittstelle unter `/api/v1`, keine beliebigen Shell-Befehle aus dem Frontend, Fehlerbehandlung für fehlende
-  und abgestürzte Dienste.
+### Added
 
-### Entscheidung
-- Statusabfrage statt SSE. Begründung: ARCHITECTURE.md, Abschnitt 11.
+- Frontend: `frontend/index.html`, `css/main.css`, `css/layout.css`, `js/app.js`, `js/navigation.js`, `js/remote.js`, `js/api.js`. Dark TV interface, large tiles, arrow-key navigation, Enter and Escape support, focus states, dialogs for launch, crashes, and missing backend.
+- Backend: `backend/main.py`, `api/apps.py`, `api/system.py`, `api/settings.py`, `services/app_launcher.py`, `services/process_manager.py`, `services/settings_store.py`, `config/settings.json`, `requirements.txt`, `run.sh`. Local HTTP interface under `/api/v1`, no arbitrary shell commands from the frontend, and error handling for missing or crashed services.
+
+### Decision
+
+- Status polling instead of SSE. See `ARCHITECTURE.md`, Section 11, for the rationale.
 
 ## [0.1.0] – 2026-11-02
 
-### Hinzugefügt
-- Erste Softwarearchitektur (Dokument, kein Anwendungscode): Module, Verantwortlichkeiten, Kommunikation, Prozessmanagement,
-  x86_64-Zielarchitektur, Ressourcen- und Sicherheitsrisiken, begründete Entscheidungen. Ihre Umsetzung und die Abweichungen
-  davon beschreibt `ARCHITECTURE.md`.
+### Added
+
+- Initial software architecture (document, no application code): modules, responsibilities, communication, process management, x86_64 target architecture, resource and security risks, and justified design decisions. Its implementation and differences from the original design are documented in `ARCHITECTURE.md`.
