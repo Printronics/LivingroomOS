@@ -26,14 +26,14 @@ The intended target environment includes:
 - Network connectivity for web applications and updates
 - Suitable input devices, such as a remote control, keyboard, or mouse
 
-For detailed dependency information, see [System Dependencies](docs/SYSTEMABHAENGIGKEITEN.md).
+For detailed dependency information, see [System Dependencies](livingroomos/docs/SYSTEMABHAENGIGKEITEN.md).
 
 ## Installation
 
 Installation instructions are available in the following documents:
 
-- [Debian Installation Guide](DEBIANINSTALL.md)
-- [Installation Overview](INSTALL.md)
+- [Debian Installation Guide](livingroomos/DEBIANINSTALL.md)
+- [Installation Overview](livingroomos/INSTALL.md)
 
 Please review the requirements and instructions before installing LivingroomOS on a target system.
 
@@ -42,18 +42,22 @@ Please review the requirements and instructions before installing LivingroomOS o
 ```text
 LivingroomOS/
 ├── README.md
-├── INSTALL.md
-├── DEBIANINSTALL.md
-├── ARCHITECTURE.md
-├── CHANGELOG.md
-├── backend/
-│   ├── config/
-│   └── tests/
-├── docs/
-│   ├── SICHERHEIT.md
-│   └── SYSTEMABHAENGIGKEITEN.md
-├── system/
-└── ...
+├── LICENSE
+└── livingroomos/
+    ├── README.md
+    ├── INSTALL.md
+    ├── DEBIANINSTALL.md
+    ├── ARCHITECTURE.md
+    ├── CHANGELOG.md
+    ├── LICENSE
+    ├── backend/
+    │   ├── config/
+    │   └── tests/
+    ├── docs/
+    │   ├── SICHERHEIT.md
+    │   └── SYSTEMABHAENGIGKEITEN.md
+    ├── system/
+    └── ...
 ```
 
 This is a simplified overview of the main project directories.
@@ -74,10 +78,10 @@ A successful test run does not necessarily mean that all features have been veri
 
 Additional technical information is available in the following documents:
 
-- [Architecture](ARCHITECTURE.md)
-- [Changelog](CHANGELOG.md)
-- [Security Documentation](docs/SICHERHEIT.md)
-- [System Dependencies](docs/SYSTEMABHAENGIGKEITEN.md)
+- [Architecture](livingroomos/ARCHITECTURE.md)
+- [Changelog](livingroomos/CHANGELOG.md)
+- [Security Documentation](livingroomos/docs/SICHERHEIT.md)
+- [System Dependencies](livingroomos/docs/SYSTEMABHAENGIGKEITEN.md)
 
 ## Development Status
 
@@ -99,8 +103,8 @@ LivingroomOS is licensed under the **GNU Affero General Public License v3.0 (AGP
 
 The license text is provided in the repository:
 
-- [Root LICENSE](../LICENSE)
-- [Application LICENSE](LICENSE)
+- [Root LICENSE](LICENSE)
+- [Application LICENSE](livingroomos/LICENSE)
 
 See the license files for the complete terms and conditions.
 
