@@ -539,7 +539,7 @@ Check that the session script exists and is executable.
 
 ### Restart or shutdown does not work
 
-Review the Polkit rule and the service account configuration.
+Check that the session is active and inspect the systemd-logind/Polkit authorization messages. LivingroomOS does not currently install a project-specific Polkit rule; see Section 13 and `docs/SICHERHEIT.md`.
 
 Inspect system logs:
 
