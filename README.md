@@ -67,6 +67,7 @@ This is a simplified overview of the main project directories.
 Install the development dependencies and run the complete test suite from the `livingroomos/` directory:
 
 ```bash
+sudo apt install -y python3-venv
 cd livingroomos
 python3 -m venv .venv
 .venv/bin/pip install -r requirements-dev.txt
