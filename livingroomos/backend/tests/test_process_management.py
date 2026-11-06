@@ -121,6 +121,11 @@ class TestKonfiguration(Base):
             launcher._resolve_executable("tool")
         tool.chmod(0o755)
 
+        self.tmp.chmod(0o775)  # auch ein beschreibbarer übergeordneter Pfad ist unsicher
+        with self.assertRaises(LaunchRefused):
+            launcher._resolve_executable("tool")
+        self.tmp.chmod(0o700)
+
         outside = self.tmp / "other" / "tool"
         outside.parent.mkdir()
         outside.write_text("#!/bin/sh\n")
