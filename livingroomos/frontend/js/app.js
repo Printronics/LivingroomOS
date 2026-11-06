@@ -39,6 +39,7 @@ let pollTimer = null;
 let polling = false;
 let toastTimer = null;
 let saveSeq = 0;
+let saveQueue = Promise.resolve();
 
 /* ------------------------------------------------------------------ Helfer */
 
@@ -323,9 +324,12 @@ async function cycleSetting(key, step) {
   state.ui[key] = next; // sofort anzeigen, bei Fehler zurücknehmen
   applyUi();
   updateSettingValues();
+  // Keep PATCH requests in key-press order so an older write cannot overwrite a newer value.
+  const pendingSave = saveQueue.then(() => api.saveSettings({ ui: { [key]: next } }));
+  saveQueue = pendingSave.catch(() => undefined);
   try {
-    const saved = (await api.saveSettings({ ui: { [key]: next } })).ui;
-    if (ticket === saveSeq) state.ui = saved; // schnelle Tastenfolge: nur die letzte Antwort zählt
+    const saved = (await pendingSave).ui;
+    if (ticket === saveSeq) state.ui = saved; // only the latest response updates the UI
   } catch (err) {
     if (ticket === saveSeq) state.ui[key] = previous;
     toast(err.network ? "Backend nicht erreichbar – Einstellung nicht gespeichert." : `Speichern fehlgeschlagen: ${err.message}`);
