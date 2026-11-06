@@ -435,7 +435,7 @@ Only continue after the following have been verified:
 - labwc starts correctly.
 - The LivingroomOS session script is executable.
 - The relevant systemd units are installed.
-- Power management permissions have been reviewed.
+- The LivingroomOS Polkit rule is installed as root-owned mode 0644.
 
 Enable greetd:
 
@@ -546,7 +546,7 @@ Check that the session script exists and is executable.
 
 ### Restart or shutdown does not work
 
-Check that the session is active and inspect the systemd-logind/Polkit authorization messages. LivingroomOS does not currently install a project-specific Polkit rule; see Section 13 and `docs/SICHERHEIT.md`.
+Check that the session is active, verify `/etc/polkit-1/rules.d/50-livingroomos-power.rules` exists and is root-owned, and inspect the systemd-logind/Polkit authorization messages. See Section 13 and `docs/SICHERHEIT.md`.
 
 Inspect system logs:
 
@@ -582,17 +582,23 @@ To remove the application after disabling its services:
 sudo rm -rf /opt/livingroomos
 ```
 
-Remove only the systemd units and Polkit rules that were installed specifically for LivingroomOS. Remove the supplied rule with:
+Remove only the systemd user units and Polkit rule that were installed specifically for LivingroomOS:
 
 ```bash
-sudo rm -f /etc/polkit-1/rules.d/50-livingroomos-power.rules
+sudo rm -f \
+    /var/lib/livingroomos/.config/systemd/user/livingroomos-backend.service \
+    /var/lib/livingroomos/.config/systemd/user/livingroomos-shell.service \
+    /var/lib/livingroomos/.config/systemd/user/livingroomos.target \
+    /etc/polkit-1/rules.d/50-livingroomos-power.rules
 ```
 
-Reload systemd after removing system units:
+If the `livingroomos` user manager is still running, reload it from that user's active session:
 
 ```bash
-sudo systemctl daemon-reload
+systemctl --user daemon-reload
 ```
+
+There are no LivingroomOS system-wide systemd units to reload.
 
 Do not remove shared Debian packages unless you have confirmed that no other installed software depends on them.
 
