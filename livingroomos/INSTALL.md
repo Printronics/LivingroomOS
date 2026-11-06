@@ -317,7 +317,8 @@ Run the system checker:
 
 ```bash
 sudo -u livingroomos \
-    python3 -B /opt/livingroomos/tools/check_system.py
+    python3 -B /opt/livingroomos/tools/check_system.py \
+    --config /var/lib/livingroomos/.config/livingroomos/settings.json
 ```
 
 Review any missing dependencies or configuration warnings.
