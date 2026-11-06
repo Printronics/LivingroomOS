@@ -13,7 +13,7 @@ polkit.addRule(function(action, subject) {
 
     // Explicitly deny these actions to every other account. Returning undefined
     // would fall through to systemd's default policy, which allows active users.
-    if (subject.user === "livingroomos") {
+    if (subject.user === "livingroomos" || subject.user === "root") {
         return polkit.Result.YES;
     }
     return polkit.Result.NO;
