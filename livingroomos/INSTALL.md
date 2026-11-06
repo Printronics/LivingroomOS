@@ -4,7 +4,7 @@
 
 This guide describes how to install and configure LivingroomOS on a minimal Debian 13 system.
 
-**Important:** Complete the Debian installation first by following [DEBIANINSTALL.md](DebianInstall.md). Do not skip the Debian preparation steps.
+**Important:** Complete the Debian installation first by following [DEBIANINSTALL.md](DEBIANINSTALL.md). Do not skip the Debian preparation steps.
 
 LivingroomOS is currently intended for internal testing. Perform the initial installation on a dedicated test machine.
 
@@ -24,7 +24,7 @@ ARM and ARM64 hardware are not supported.
 
 ### Software
 
-The Debian base system must already be installed according to [DebianInstall.md](DebianInstall.md).
+The Debian base system must already be installed according to [DEBIANINSTALL.md](DEBIANINSTALL.md).
 
 The following components will be installed or configured during this guide:
 
@@ -158,76 +158,131 @@ sudo useradd \
     livingroomos
 ```
 
-The service account is intended to own the application runtime and perform only the operations required by LivingroomOS.
+If the account already exists, do not create it again. Verify its home directory and shell instead:
 
-The graphical session configuration may require additional session permissions or group membership depending on the hardware and Debian setup.
+```bash
+getent passwd livingroomos
+```
 
-Do not grant broad administrative privileges just to make the interface start.
+The service account should not own or be able to modify trusted application code.
 
 ---
 
 ## 6. Deploy the project
 
-Copy the LivingroomOS project directory to `/opt/livingroomos`.
+The application files are located in the repository's `livingroomos/` subdirectory.
 
-For example, if the project is currently in your home directory:
+Copy the contents of that directory to `/opt/livingroomos`.
+
+For example, if the repository was cloned into your home directory:
 
 ```bash
-sudo mkdir -p /opt/livingroomos
-sudo cp -a /path/to/LivingroomOS/. /opt/livingroomos/
+sudo install -d -o root -g root -m 755 /opt/livingroomos
+sudo cp -a ~/LivingroomOS/livingroomos/. /opt/livingroomos/
 ```
 
-Replace `/path/to/LivingroomOS` with the actual location of your project.
+Adjust the source path if your repository is stored somewhere else.
 
-Set ownership according to the intended runtime and security model.
+Set ownership and permissions:
 
-The application should not allow an unprivileged process to modify trusted executable files or system configuration.
+```bash
+sudo chown -R root:root /opt/livingroomos
+sudo find /opt/livingroomos -type d -exec chmod 755 {} \;
+sudo find /opt/livingroomos -type f -exec chmod 644 {} \;
+```
 
-Review executable permissions:
+Make shell scripts executable:
 
 ```bash
 sudo find /opt/livingroomos -type f -name '*.sh' -exec chmod 755 {} \;
 ```
 
-Make sure that configuration files and application files are not writable by untrusted users.
+The application directory must remain protected against modification by the service account.
+
+Do not make `/opt/livingroomos` writable by the `livingroomos` user.
 
 ---
 
 ## 7. Set up the Python environment
 
-Switch to the project directory:
+Create the virtual environment as root so that the application runtime cannot modify its installed Python packages:
 
 ```bash
-cd /opt/livingroomos
+sudo python3 -m venv /opt/livingroomos/.venv
 ```
 
-Create a virtual environment as the LivingroomOS account:
+Install the Python dependencies.
+
+If the project contains `requirements.txt`, use:
 
 ```bash
-sudo -u livingroomos python3 -m venv .venv
+sudo /opt/livingroomos/.venv/bin/pip install \
+    -r /opt/livingroomos/requirements.txt
 ```
 
-Install the Python dependencies required by the backend.
-
-At minimum, the application requires FastAPI and Uvicorn:
+If no requirements file is available, the backend at minimum requires FastAPI and Uvicorn:
 
 ```bash
-sudo -u livingroomos /opt/livingroomos/.venv/bin/pip install fastapi uvicorn
-```
-
-If the project contains a `requirements.txt`, use that file instead:
-
-```bash
-sudo -u livingroomos /opt/livingroomos/.venv/bin/pip install -r requirements.txt
+sudo /opt/livingroomos/.venv/bin/pip install fastapi uvicorn
 ```
 
 Do not install Python packages globally with `sudo pip`.
 
+The service account needs permission to execute the virtual environment, but it must not have permission to modify it.
+
 ---
 
-## 8. Test the backend manually
+## 8. Prepare the service configuration
 
-Start the application:
+The systemd service configuration uses the service user's home directory for the LivingroomOS settings file.
+
+Create the configuration directory:
+
+```bash
+sudo install -d \
+    -o livingroomos \
+    -g livingroomos \
+    -m 700 \
+    /var/lib/livingroomos/.config/livingroomos
+```
+
+The expected settings path is:
+
+```text
+/var/lib/livingroomos/.config/livingroomos/settings.json
+```
+
+Before starting the backend, identify the settings template or initial configuration supplied by the project. Use that file to create `settings.json` at the expected location.
+
+Do not create an empty JSON file as a substitute for the application's required configuration.
+
+Set ownership and permissions after installing the initial settings:
+
+```bash
+sudo chown livingroomos:livingroomos \
+    /var/lib/livingroomos/.config/livingroomos/settings.json
+
+sudo chmod 600 \
+    /var/lib/livingroomos/.config/livingroomos/settings.json
+```
+
+If the project version does not provide a settings template, check the configuration requirements in the backend before starting the service.
+
+---
+
+## 9. Test the backend manually
+
+Before enabling automatic startup, verify that the backend can be started.
+
+Run:
+
+```bash
+sudo -u livingroomos \
+    /opt/livingroomos/.venv/bin/python \
+    /opt/livingroomos/backend/main.py
+```
+
+If the project uses `run.sh` as its supported entry point, use that script instead:
 
 ```bash
 sudo -u livingroomos /opt/livingroomos/run.sh
@@ -251,12 +306,14 @@ Stop the manually started process before proceeding with systemd configuration.
 
 ---
 
-## 9. Run the system checker
+## 10. Run the system checker
 
 Run the system checker:
 
 ```bash
-sudo -u livingroomos python3 -B /opt/livingroomos/tools/check_system.py
+sudo -u livingroomos \
+    /opt/livingroomos/.venv/bin/python \
+    -B /opt/livingroomos/tools/check_system.py
 ```
 
 Review any missing dependencies or configuration warnings.
@@ -275,7 +332,7 @@ Resolve blocking errors before enabling automatic startup.
 
 ---
 
-## 10. Configure the graphical session
+## 11. Configure the graphical session
 
 LivingroomOS uses Wayland and labwc.
 
@@ -306,7 +363,7 @@ Do not enable automatic login until manual session startup has been tested succe
 
 ---
 
-## 11. Configure systemd
+## 12. Configure systemd
 
 The project provides systemd integration under:
 
@@ -323,7 +380,15 @@ Install the appropriate units into the systemd configuration directory according
 
 Do not install user units as system units or vice versa.
 
-After installation, reload systemd:
+Check the service configuration for the expected settings path:
+
+```text
+%h/.config/livingroomos/settings.json
+```
+
+For the `livingroomos` service account, `%h` should resolve to its configured home directory, `/var/lib/livingroomos`.
+
+After installing the units, reload systemd:
 
 ```bash
 sudo systemctl daemon-reload
@@ -345,7 +410,7 @@ systemctl --user status
 
 ---
 
-## 12. Configure power management permissions
+## 13. Configure power management permissions
 
 LivingroomOS provides restart and shutdown controls.
 
@@ -372,11 +437,12 @@ Test power operations only on a dedicated test machine.
 
 ---
 
-## 13. Enable automatic startup
+## 14. Enable automatic startup
 
 Only continue after the following have been verified:
 
 - The backend starts successfully.
+- The settings file exists and has the correct ownership.
 - The health endpoint responds.
 - Chrome launches successfully.
 - labwc starts correctly.
@@ -402,7 +468,7 @@ The system should start the configured LivingroomOS session.
 
 ---
 
-## 14. Initial test checklist
+## 15. Initial test checklist
 
 After the first successful startup, test the following:
 
@@ -423,7 +489,7 @@ After the first successful startup, test the following:
 
 ---
 
-## 15. Troubleshooting
+## 16. Troubleshooting
 
 ### The backend does not start
 
@@ -431,6 +497,13 @@ Check the Python environment:
 
 ```bash
 ls -la /opt/livingroomos/.venv/bin/python
+```
+
+Check the settings file:
+
+```bash
+sudo -u livingroomos test -r \
+    /var/lib/livingroomos/.config/livingroomos/settings.json
 ```
 
 Check the backend manually:
@@ -498,7 +571,7 @@ Do not work around permission errors by granting unrestricted root access to the
 
 ---
 
-## 16. Uninstall and recovery
+## 17. Uninstall and recovery
 
 If the automatic session prevents normal access:
 
@@ -534,7 +607,7 @@ Do not remove shared Debian packages unless you have confirmed that no other ins
 
 ---
 
-## 17. Internal testing notes
+## 18. Internal testing notes
 
 This installation guide describes the intended deployment configuration. Hardware-specific behavior can vary, particularly for:
 
