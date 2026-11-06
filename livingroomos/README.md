@@ -2,155 +2,143 @@
 
 **A lightweight, keyboard-friendly living-room interface for Debian 13 (x86_64).**
 
-LivingroomOS is a minimal desktop environment designed for TV screens and living-room PCs. It provides a simple application launcher, system status information, configurable settings, and basic system power controls.
+LivingroomOS is a minimal living-room interface for TV screens and media-center PCs. It provides an application launcher, system status, configurable settings, and basic power controls.
 
-The project is designed around Debian 13 and targets x86_64 systems exclusively.
+The project targets Debian 13 (Trixie) on x86_64 / amd64 only.
 
 ## Features
 
-- TV-friendly application launcher
-- Simple interface built with HTML, CSS, and vanilla JavaScript
-- Python backend using FastAPI
-- Local-only backend API
+- TV-friendly application launcher and keyboard navigation
+- HTML, CSS, and vanilla JavaScript frontend
+- Python backend using FastAPI and Uvicorn
+- Local-only HTTP API on `127.0.0.1:8750`
 - Google Chrome Stable as the supported browser
-- Wayland session using labwc
-- greetd-based automatic session startup
-- System status information
-- Settings interface for user preferences
-- System restart and shutdown controls
+- Wayland session using labwc, started by greetd
+- Persistent user-interface settings
+- System status, restart, and shutdown controls
+- systemd user services for the backend and launcher
 - Debug section for development and test applications
-- systemd integration
-- Restricted system power operations
 
-## Platform support
+## Supported platform
 
-| Component        | Supported configuration    |
-| ---------------- | -------------------------- |
-| Operating system | Debian 13 (Trixie)         |
-| Architecture     | x86_64 / amd64             |
-| Display server   | Wayland                    |
-| Window manager   | labwc                      |
-| Browser          | Google Chrome Stable       |
-| Login manager    | greetd                     |
-| Backend          | Python 3, FastAPI, Uvicorn |
-| Frontend         | HTML, CSS, JavaScript      |
+| Component | Supported configuration |
+|---|---|
+| Operating system | Debian 13 (Trixie) |
+| Architecture | x86_64 / amd64 |
+| Display server | Wayland |
+| Compositor | labwc |
+| Login manager | greetd |
+| Browser | Google Chrome Stable |
+| Backend | Python 3.11+, FastAPI, Uvicorn |
 
-ARM and ARM64 systems are not supported.
+ARM and ARM64 are not supported.
 
-## Project structure
+## Repository layout
+
+The application is contained in the `livingroomos/` directory of the repository:
 
 ```text
 LivingroomOS/
-├── backend/
-│   └── main.py
-├── frontend/
-│   ├── index.html
-│   ├── css/
-│   └── js/
-├── config/
-├── system/
-│   ├── bin/
-│   ├── labwc/
-│   ├── greetd/
-│   ├── systemd/
-│   └── polkit/
-├── tools/
-│   └── check_system.py
-├── tests/
-├── debian-packages.txt
-├── run.sh
 ├── README.md
-├── INSTALL.md
-├── DebianInstall.md
-├── ARCHITECTURE.md
-└── CHANGELOG.md
+└── livingroomos/
+    ├── README.md
+    ├── INSTALL.md
+    ├── DEBIANINSTALL.md
+    ├── ARCHITECTURE.md
+    ├── CHANGELOG.md
+    ├── LICENSE
+    ├── backend/
+    │   ├── api/
+    │   ├── config/
+    │   ├── services/
+    │   └── tests/
+    ├── frontend/
+    │   ├── css/
+    │   └── js/
+    ├── docs/
+    ├── system/
+    │   ├── bin/
+    │   ├── chrome/
+    │   ├── greetd/
+    │   ├── labwc/
+    │   └── systemd/user/
+    ├── tools/
+    ├── debian-packages.txt
+    ├── requirements.txt
+    └── run.sh
 ```
-
-The exact contents may vary between development versions.
-
-## Architecture
-
-LivingroomOS consists of three main layers:
-
-1. **Frontend:** Displays the launcher, settings, application entries, and system information.
-2. **Backend:** Provides a local HTTP API for application data, settings, system status, and power operations.
-3. **System integration:** Starts the graphical session and connects the interface to Debian system services.
-
-The backend is intended to listen only on `127.0.0.1`, using port `8750` by default.
-
-## Security
-
-LivingroomOS is designed to keep system access limited:
-
-- The backend listens on localhost rather than exposing its API to the network.
-- State-changing API requests require the LivingroomOS request header.
-- Power operations use fixed system commands.
-- Polkit rules restrict permitted power operations to the dedicated LivingroomOS service account.
-- Executable files and configuration are expected to have appropriate ownership and permissions.
-
-Do not expose the backend port to an untrusted network.
 
 ## Installation
 
-For a complete installation guide, see:
+Install and prepare Debian first, then install LivingroomOS:
 
-- [DEBIANINSTALL.md](DebianInstall.md) — Installing and preparing the minimal Debian 13 base system.
-- [INSTALL.md](INSTALL.md) — Installing and configuring LivingroomOS after Debian is ready.
+1. [Debian 13 installation guide](DEBIANINSTALL.md)
+2. [LivingroomOS installation guide](INSTALL.md)
 
-Follow the Debian installation guide first.
+Follow the guides in that order. The installation guide contains the required commands for deploying the application files and configuring the system services.
 
-## Development
+## Architecture
 
-Run the backend manually during development:
+LivingroomOS has three main parts:
+
+1. **Frontend:** the launcher, application tiles, settings, and system status.
+2. **Backend:** a local FastAPI service for application management, settings, status, and fixed power actions.
+3. **System integration:** greetd starts the labwc session; labwc starts the systemd user target, which runs the backend and Chrome launcher.
+
+The backend is intended to listen only on `127.0.0.1`, port `8750` by default. Do not expose this port to an untrusted network.
+
+## Security notes
+
+- The backend accepts connections only from loopback hostnames.
+- State-changing API requests require the `X-LivingroomOS: 1` header.
+- Application commands are defined by the administrator in the settings file; the frontend submits application IDs, not shell commands.
+- Restart and shutdown are mapped to fixed system commands.
+- The service account should not own or be able to modify application code under `/opt/livingroomos`.
+- The backend and launched applications currently share the dedicated `livingroomos` user. This limits isolation if an application is compromised; see [the security documentation](docs/SICHERHEIT.md).
+
+## Development and tests
+
+For a local development run, create a Python virtual environment and install the dependencies:
 
 ```bash
-cd /opt/livingroomos
+cd livingroomos
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
 ./run.sh
 ```
 
-The default local address is:
+The backend listens on:
 
 ```text
 http://127.0.0.1:8750
 ```
 
-For development and internal testing, use a regular non-root account wherever possible.
-
-Run the test suite with:
+Run the automated tests from the `livingroomos/` directory:
 
 ```bash
-python3 -B -m unittest discover -s tests -v
+python3 -B -m unittest discover -s backend/tests -v
 ```
 
-Some system integration tests require a properly configured Debian environment. File ownership and executable permission checks may also behave differently when tests are run as root or inside containers.
+Some API tests require the development dependencies listed in `requirements-dev.txt`. A successful unit-test run does not replace testing the complete installation on Debian 13 hardware.
 
-## Internal testing status
+## Testing status
 
-LivingroomOS is intended for internal testing and development.
+LivingroomOS is under development and is intended for internal testing until the installation and hardware checks are complete.
 
-Before using it as a daily living-room system, verify:
+Before treating it as a stable release, verify at least:
 
-- Startup and automatic login
-- Display resolution and scaling
-- Google Chrome launch behavior
-- Application navigation
-- Settings persistence
+- Automatic login and labwc session startup
+- Display resolution, scaling, and HDMI audio
+- Chrome launch and application navigation
+- Settings persistence across restarts
+- Recovery after backend or browser failure
 - Restart and shutdown behavior
-- Recovery from backend or browser failures
-- Compatibility with the target hardware
+- Compatibility with the intended remote control and target hardware
 
-System power controls should be tested carefully, preferably on a dedicated test machine.
+The kiosk, input-device, and power-management integration must be tested on the actual target hardware.
 
 ## License and third-party components
 
-LivingroomOS is intended to use original project code and assets wherever possible.
+LivingroomOS is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0); see [LICENSE](LICENSE).
 
-The project depends on external software such as Debian, Python, FastAPI, Uvicorn, labwc, greetd, systemd, Polkit, and Google Chrome. These components remain subject to their respective licenses and terms.
-
-Any third-party assets or dependencies added in the future must be reviewed for licensing and redistribution requirements.
-
-## Project goals
-
-LivingroomOS aims to provide a small, maintainable, and understandable living-room interface without the overhead of a traditional desktop environment.
-
-The focus is on simplicity, predictable system behavior, and compatibility with Debian 13 on x86_64 hardware.
+The project depends on external software including Debian, Python, FastAPI, Uvicorn, labwc, greetd, systemd, Polkit, and Google Chrome. Each component remains subject to its own license and distribution terms. Review third-party components and assets before redistributing a release.
