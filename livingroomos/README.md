@@ -99,12 +99,12 @@ The backend is intended to listen only on `127.0.0.1`, port `8750` by default. D
 
 ## Development and tests
 
-For a local development run, create a Python virtual environment and install the dependencies:
+For local development and the complete test suite, create a Python virtual environment and install the development dependencies. This also installs the runtime dependencies from `requirements.txt`:
 
 ```bash
 cd livingroomos
 python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
+.venv/bin/pip install -r requirements-dev.txt
 ./run.sh
 ```
 
@@ -114,13 +114,13 @@ The backend listens on:
 http://127.0.0.1:8750
 ```
 
-Run the automated tests from the `livingroomos/` directory:
+Run the automated tests from the `livingroomos/` directory using the same virtual environment:
 
 ```bash
-python3 -B -m unittest discover -s backend/tests -v
+.venv/bin/python -B -m unittest discover -s backend/tests -v
 ```
 
-Some API tests require the development dependencies listed in `requirements-dev.txt`. A successful unit-test run does not replace testing the complete installation on Debian 13 hardware.
+The `requirements-dev.txt` file includes `httpx`, which is required by the API tests. A successful unit-test run does not replace testing the complete installation on Debian 13 hardware.
 
 ## Testing status
 
