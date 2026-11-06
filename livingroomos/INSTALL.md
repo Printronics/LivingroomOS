@@ -373,6 +373,30 @@ sudo install -o root -g root -m 644 \
 
 This replaces the existing greetd configuration. If the machine already has a custom greetd setup, back it up before running the command.
 
+### Reserve tty1 for greetd
+
+The supplied greetd configuration sets `vt = 1`. The systemd getty on `tty1` must not run at the same time: both services would compete for the same virtual terminal. Debian's packaged `greetd.service` may not declare this conflict, so add an explicit systemd drop-in:
+
+```bash
+sudo install -d -o root -g root -m 755 /etc/systemd/system/greetd.service.d
+sudo tee /etc/systemd/system/greetd.service.d/tty1.conf >/dev/null <<'EOF'
+[Unit]
+After=getty@tty1.service
+Conflicts=getty@tty1.service
+EOF
+sudo systemctl daemon-reload
+sudo systemctl disable --now getty@tty1.service
+```
+
+The drop-in ensures that starting greetd stops any getty that may have been started for `tty1`. Disabling the getty prevents it from being enabled as the normal login console. Do not disable other getty instances; they can remain available on other virtual terminals for recovery. Verify the result with:
+
+```bash
+sudo systemctl is-active getty@tty1.service
+sudo systemctl cat greetd.service
+```
+
+The first command should report `inactive` (or `unknown` if the unit is not loaded). Keep SSH or another recovery method available before proceeding.
+
 The session script starts labwc with the project configuration directory:
 
 ```text
