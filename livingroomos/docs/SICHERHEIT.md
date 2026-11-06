@@ -139,12 +139,14 @@ Die Oberfläche kann nur `POST /api/v1/system/power/restart` oder `POST /api/v1/
 Das Backend mappt diese zwei Werte auf feste Argumentlisten (`systemctl reboot` bzw. `systemctl poweroff`).
 Es gibt keine freie Befehls-, Parameter- oder Shell-Eingabe. Andere Aktionsnamen werden mit HTTP 404 abgewiesen.
 
-**Berechtigungsgrenze:** Das Repository enthält derzeit keine eigene Polkit-Regel. Die Aktionen unterliegen deshalb
-der systemweiten systemd-logind-/Polkit-Standardrichtlinie. Auf einem aktiven lokalen Benutzerplatz erlaubt die
-Standardrichtlinie Neustart und Herunterfahren; diese Berechtigung ist nicht exklusiv auf `livingroomos`
-beschränkt. Die Oberfläche begrenzt lediglich die angebotenen Aktionen, sie schafft keine zusätzliche
-Berechtigungsgrenze gegenüber anderen Prozessen desselben aktiven Benutzers.
+**Berechtigungsgrenze:** Das Repository enthält `system/polkit/50-livingroomos-power.rules`. Die Regel gibt
+ausschließlich dem Benutzer `livingroomos` die Berechtigungen `org.freedesktop.login1.reboot`,
+`org.freedesktop.login1.reboot-multiple-sessions`, `org.freedesktop.login1.power-off` und
+`org.freedesktop.login1.power-off-multiple-sessions`. Andere Benutzer und andere Aktionen werden von dieser
+Regel nicht freigegeben und unterliegen weiterhin der systemweiten Polkit-Richtlinie.
 
-Vor einem Release muss diese Eigenschaft auf Debian 13 geprüft und in der Sicherheitsbewertung berücksichtigt
-werden. Insbesondere darf die Dokumentation nicht behaupten, dass eine nicht vorhandene Projektregel die
-Power-Aktionen ausschließlich dem Dienstkonto erlaubt.
+Die Regel muss bei der Installation root-eigen nach `/etc/polkit-1/rules.d/50-livingroomos-power.rules`
+kopiert werden. Sie gewährt keine allgemeinen Administratorrechte. Da Backend und gestartete Anwendungen
+dieselbe UID verwenden, kann jedoch jeder Prozess mit Codeausführung als `livingroomos` Neustart und
+Herunterfahren anfordern. Der Dienstbenutzer muss deshalb dediziert bleiben; diese Berechtigungsgrenze ist
+auf Debian 13 zu testen.
