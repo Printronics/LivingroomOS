@@ -139,11 +139,18 @@ Verify the installation:
 google-chrome-stable --version
 ```
 
-The command should return the installed Chrome version.
+Install the managed Chrome policy shipped with LivingroomOS:
+
+```bash
+sudo install -d -o root -g root -m 755 /etc/opt/chrome/policies/managed
+sudo install -o root -g root -m 644 \
+    /opt/livingroomos/system/chrome/livingroomos.json \
+    /etc/opt/chrome/policies/managed/livingroomos.json
+```
+
+The policy is installed system-wide and must remain owned by root. Restart Chrome after changing it.
 
 Do not substitute Chromium unless the project is explicitly changed and tested to support it.
-
----
 
 ## 5. Create the LivingroomOS service account
 
@@ -278,21 +285,17 @@ Before the first start, edit the runtime copy and replace the example streaming 
 
 ## 9. Test the backend manually
 
-Before enabling automatic startup, verify that the backend can be started.
+Before enabling automatic startup, verify that the backend can be started with the same runtime configuration used by the systemd user service.
 
 Run:
 
 ```bash
-sudo -u livingroomos \
-    /opt/livingroomos/.venv/bin/python \
-    /opt/livingroomos/backend/main.py
+sudo -u livingroomos env \
+    LIVINGROOMOS_CONFIG=/var/lib/livingroomos/.config/livingroomos/settings.json \
+    /opt/livingroomos/run.sh
 ```
 
-If the project uses `run.sh` as its supported entry point, use that script instead:
-
-```bash
-sudo -u livingroomos /opt/livingroomos/run.sh
-```
+The `run.sh` entry point automatically uses `/opt/livingroomos/.venv` when that virtual environment exists. The explicit `LIVINGROOMOS_CONFIG` value is important: without it, this manual test would use the read-only template inside the application directory instead of the writable runtime settings file.
 
 The backend should listen on:
 
@@ -306,11 +309,13 @@ In another terminal, check its health endpoint:
 curl http://127.0.0.1:8750/api/v1/health
 ```
 
-The expected response is a successful health response from the backend.
+The expected response is:
 
-Stop the manually started process before proceeding with systemd configuration.
+```json
+{"status":"ok"}
+```
 
----
+Stop the manually started process with `Ctrl+C` before proceeding with systemd configuration.
 
 ## 10. Run the system checker
 
@@ -340,108 +345,75 @@ Resolve blocking errors before enabling automatic startup.
 
 ## 11. Configure the graphical session
 
-LivingroomOS uses Wayland and labwc.
+LivingroomOS uses Wayland and labwc. Install the supplied greetd configuration:
 
-The project includes session configuration under:
-
-```text
-/opt/livingroomos/system/
+```bash
+sudo install -o root -g root -m 644 \
+    /opt/livingroomos/system/greetd/config.toml \
+    /etc/greetd/config.toml
 ```
 
-Review the supplied configuration before installing it.
+This replaces the existing greetd configuration. If the machine already has a custom greetd setup, back it up before running the command.
 
-The greetd configuration is expected to start the LivingroomOS session using:
+The session script starts labwc with the project configuration directory:
 
 ```text
-/opt/livingroomos/system/bin/livingroomos-session
+/opt/livingroomos/system/labwc
 ```
 
-Make sure the script exists and is executable:
+The script passes this directory to labwc with `-C`; do not copy these files to a different location unless you also update the session script.
+
+Verify that the session script is executable:
 
 ```bash
 sudo test -x /opt/livingroomos/system/bin/livingroomos-session \
     && echo "Session script is executable"
 ```
 
-Check the labwc configuration and confirm that the application startup command points to the correct project location.
+The labwc autostart file starts the LivingroomOS systemd user target. The Home key bindings in `rc.xml` call `livingroomosctl` by its absolute project path. Keep the project at `/opt/livingroomos` unless you update all corresponding paths.
 
 Do not enable automatic login until manual session startup has been tested successfully.
 
----
-
 ## 12. Configure systemd
 
-The project provides systemd integration under:
-
-```text
-/opt/livingroomos/system/systemd/
-```
-
-Review the included unit files before installing them.
-
-Install the appropriate units into the systemd configuration directory according to their intended scope:
-
-- System units belong in `/etc/systemd/system/`.
-- User units belong in the relevant user's systemd configuration directory.
-
-Do not install user units as system units or vice versa.
-
-Check the service configuration for the expected settings path:
-
-```text
-%h/.config/livingroomos/settings.json
-```
-
-For the `livingroomos` service account, `%h` should resolve to its configured home directory, `/var/lib/livingroomos`.
-
-After installing the units, reload systemd:
+The supplied units are **systemd user units**, not system-wide system services. Install them into the dedicated service user's configuration directory:
 
 ```bash
-sudo systemctl daemon-reload
+sudo install -d \
+    -o livingroomos \
+    -g livingroomos \
+    -m 700 \
+    /var/lib/livingroomos/.config/systemd/user
+
+sudo install -o livingroomos -g livingroomos -m 644 \
+    /opt/livingroomos/system/systemd/user/livingroomos-backend.service \
+    /opt/livingroomos/system/systemd/user/livingroomos-shell.service \
+    /opt/livingroomos/system/systemd/user/livingroomos.target \
+    /var/lib/livingroomos/.config/systemd/user/
 ```
 
-Enable only the services required by the supplied configuration.
+The labwc autostart file runs `systemctl --user start livingroomos.target` inside the `livingroomos` graphical session. The target starts the backend and Chrome launcher. These units are therefore started by the session; do not install them under `/etc/systemd/system/` and do not enable them as system services.
 
-Check service status with:
+After the first greetd login, inspect the user manager from a terminal in the LivingroomOS session:
 
 ```bash
-systemctl status greetd
+systemctl --user daemon-reload
+systemctl --user status livingroomos.target
+systemctl --user status livingroomos-backend.service
+systemctl --user status livingroomos-shell.service
 ```
 
-For a user service, inspect it from the corresponding user session:
+The backend unit uses `%h/.config/livingroomos/settings.json`. For the `livingroomos` account, `%h` must resolve to `/var/lib/livingroomos`.
 
-```bash
-systemctl --user status
-```
-
----
+The greetd configuration is installed separately in Section 11. Reloading the system-wide systemd manager does not reload user units; use `systemctl --user daemon-reload` from the corresponding user session.
 
 ## 13. Configure power management permissions
 
-LivingroomOS provides restart and shutdown controls.
+The backend requests restart and shutdown through fixed `systemctl reboot` and `systemctl poweroff` commands. Authorization is handled by Debian's systemd-logind and Polkit policy for the active `livingroomos` session.
 
-These operations must remain restricted to the intended service account.
+**Important:** The current repository does not contain a file under `system/polkit/`. Therefore there is no project-specific Polkit rule to copy or install. Do not follow instructions from older versions of this guide that imply such a rule is included, and do not add a broad rule granting general administrator or systemd-management permissions.
 
-The project includes a Polkit rule under:
-
-```text
-/opt/livingroomos/system/polkit/
-```
-
-Review the rule before installing it.
-
-The intended permissions are limited to the required system power operations:
-
-- Reboot
-- Power off
-
-Do not add unrestricted administrator permissions or broad Polkit rules.
-
-After installing the rule, reload or restart the relevant system services if required by the configuration.
-
-Test power operations only on a dedicated test machine.
-
----
+Verify the actual authorization behavior on a dedicated test machine while logged in through the configured greetd session. If restart or shutdown is denied or requires an administrator password, treat power controls as not yet configured and do not consider that feature release-ready.
 
 ## 14. Enable automatic startup
 
