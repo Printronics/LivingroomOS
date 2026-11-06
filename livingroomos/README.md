@@ -102,6 +102,7 @@ The backend is intended to listen only on `127.0.0.1`, port `8750` by default. D
 For local development and the complete test suite, create a Python virtual environment and install the development dependencies. This also installs the runtime dependencies from `requirements.txt`:
 
 ```bash
+sudo apt install -y python3-venv
 cd livingroomos
 python3 -m venv .venv
 .venv/bin/pip install -r requirements-dev.txt
