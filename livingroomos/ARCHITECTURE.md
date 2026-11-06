@@ -98,7 +98,7 @@ Each task has exactly one designated location. Dependencies point downward only:
 | `labwc/autostart`, `labwc/rc.xml` | Imports `WAYLAND_DISPLAY`, starts `livingroomos.target`, configures kiosk mode without default keyboard shortcuts, and defines the Home shortcut |
 | `systemd/user/*` | `livingroomos-backend.service`, `livingroomos-shell.service`, `livingroomos.target` |
 | `chrome/livingroomos.json` | Google Chrome policies (developer tools disabled, password manager disabled, synchronization disabled) |
-| `polkit/50-livingroomos-power.rules` | Grants only the dedicated `livingroomos` user the fixed reboot and power-off actions |
+| `polkit/50-livingroomos-power.rules` | Grants the `livingroomos` user and root the fixed reboot and power-off actions; denies other users |
 | `bin/livingroomosctl` | Small utility that communicates with the backend over HTTP only (`home`, `status`, `wait`) |
 
 `tools/check_system.py` checks whether a system meets the requirements (Debian 13 Trixie, architecture, Python, kernel, packages, and configuration).
