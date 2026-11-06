@@ -136,45 +136,180 @@ function updateTileStates() {
 }
 
 /* ------------------------------------------------------------ Einstellungen */
-
 function renderSettings() {
   const rows = [];
-  for (const [key, label] of [["general", "Allgemein"], ["system", "System"], ["debug", "Debug"]]) {
-    rows.push(h("li", {}, h("button", { class: "row", attrs: { type: "button", "data-focusable": "", "data-key": `tab-${key}` },
-      on: { click: () => { state.settingsTab = key; renderSettings(); nav.setScope(viewEl()); } } },
-      h("span", { text: label }), h("span", { class: "row__value", text: state.settingsTab === key ? "Aktiv" : "Öffnen" }))));
+
+  // Einstellungs-Tabs
+  for (const [key, label] of [
+    ["general", "Allgemein"],
+    ["system", "System"],
+    ["debug", "Debug"]
+  ]) {
+    rows.push(h("li", {}, h("button", {
+      class: "row",
+      attrs: {
+        type: "button",
+        "data-focusable": "",
+        "data-key": `tab-${key}`
+      },
+      on: {
+        click: () => {
+          state.settingsTab = key;
+          renderSettings();
+          nav.setScope(viewEl());
+        }
+      }
+    },
+      h("span", { text: label }),
+      h("span", {
+        class: "row__value",
+        text: state.settingsTab === key ? "Aktiv" : "Öffnen"
+      })
+    )));
   }
+
+  // Allgemeine und System-Einstellungen
   if (state.settingsTab === "general" || state.settingsTab === "system") {
-    for (const setting of SETTINGS.filter((item) => item.tab === state.settingsTab)) {
-      rows.push(h("li", {}, h("button", { class: "row", attrs: { type: "button", "data-focusable": "", "data-repeatable": "", "data-key": setting.key, "data-setting": setting.key },
-        on: { click: () => cycleSetting(setting.key, 1) } }, h("span", { text: setting.label }), h("span", { class: "row__value", attrs: { "data-role": "value" } }))));
+    for (const setting of SETTINGS.filter(
+      (item) => item.tab === state.settingsTab
+    )) {
+      rows.push(h("li", {}, h("button", {
+        class: "row",
+        attrs: {
+          type: "button",
+          "data-focusable": "",
+          "data-repeatable": "",
+          "data-key": setting.key,
+          "data-setting": setting.key
+        },
+        on: {
+          click: () => cycleSetting(setting.key, 1)
+        }
+      },
+        h("span", { text: setting.label }),
+        h("span", {
+          class: "row__value",
+          attrs: { "data-role": "value" }
+        })
+      )));
     }
   } else {
-    rows.push(h("li", {}, h("p", { class: "row__value", text: "Testanwendungen – nur für Diagnosezwecke" })));
-    for (const app of state.apps.filter((item) => item.category === "debug")) {
-      rows.push(h("li", {}, h("button", { class: "row", attrs: { type: "button", "data-focusable": "", "data-key": `debug-${app.id}` },
-        on: { click: () => launchApp(app) } }, h("span", { text: `${app.title} · ${app.subtitle}` }), h("span", { class: "row__value", text: "Starten" }))));
+    // Debug-Einstellungen
+    rows.push(h("li", {}, h("p", {
+      class: "row__value",
+      text: "Testanwendungen – nur für Diagnosezwecke"
+    })));
+
+    for (const app of state.apps.filter(
+      (item) => item.category === "debug"
+    )) {
+      rows.push(h("li", {}, h("button", {
+        class: "row",
+        attrs: {
+          type: "button",
+          "data-focusable": "",
+          "data-key": `debug-${app.id}`
+        },
+        on: {
+          click: () => launchApp(app)
+        }
+      },
+        h("span", { text: `${app.title} · ${app.subtitle}` }),
+        h("span", {
+          class: "row__value",
+          text: "Starten"
+        })
+      )));
     }
-    rows.push(h("li", {}, h("button", { class: "row", attrs: { type: "button", "data-focusable": "", "data-key": "debug-stop" },
-      on: { click: stopApp } }, h("span", { text: "Laufende Test-App beenden" }))));
+
+    rows.push(h("li", {}, h("button", {
+      class: "row",
+      attrs: {
+        type: "button",
+        "data-focusable": "",
+        "data-key": "debug-stop"
+      },
+      on: { click: stopApp }
+    },
+      h("span", { text: "Laufende Test-App beenden" })
+    )));
   }
+
+  // Systemaktionen
   if (state.settingsTab === "system") {
-    for (const [action, label] of [["restart", "PC neu starten"], ["shutdown", "PC herunterfahren"]]) {
-      rows.push(h("li", {}, h("button", { class: "row", attrs: { type: "button", "data-focusable": "", "data-key": action },
-        on: { click: () => requestPower(action) } }, h("span", { text: label }))));
+    for (const [action, label] of [
+      ["restart", "PC neu starten"],
+      ["shutdown", "PC herunterfahren"]
+    ]) {
+      rows.push(h("li", {}, h("button", {
+        class: "row",
+        attrs: {
+          type: "button",
+          "data-focusable": "",
+          "data-key": action
+        },
+        on: {
+          click: () => requestPower(action)
+        }
+      },
+        h("span", { text: label })
+      )));
     }
   }
-  rows.push(h("li", {}, h("button", { class: "row", attrs: { type: "button", "data-focusable": "", "data-key": "back" },
-    on: { click: () => showView("home") } }, h("span", { text: "Zurück" }))));
-  $("settings-list").replaceChildren(...rows);
+
+  // Lizenz- und Projektinformationen
+  rows.push(h("li", {}, h("button", {
+    class: "row",
+    attrs: {
+      type: "button",
+      "data-focusable": "",
+      "data-key": "about"
+    },
+    on: { click: showAbout }
+  },
+    h("span", { text: "Über LivingroomOS" }),
+    h("span", {
+      class: "row__value",
+      text: "Lizenz und Quellcode"
+    })
+  )));
+
+  // Zurück-Schaltfläche
+  rows.push(h("li", {}, h("button", {
+    class: "row",
+    attrs: {
+      type: "button",
+      "data-focusable": "",
+      "data-key": "back"
+    },
+    on: {
+      click: () => showView("home")
+    }
+  },
+    h("span", { text: "Zurück" })
+  )));
+
+  // Liste anzeigen
+  const list = $("settings-list");
+  list.replaceChildren(...rows);
+
+  // Einstellungswerte aktualisieren
   updateSettingValues();
 }
 
 function updateSettingValues() {
   for (const s of SETTINGS) {
-    const out = $("settings-list").querySelector(`[data-setting="${s.key}"] [data-role="value"]`);
-    const current = s.values.find(([value]) => value === state.ui[s.key]);
-    if (out) out.textContent = `‹  ${current ? current[1] : "?"}  ›`;
+    const out = $("settings-list").querySelector(
+      `[data-setting="${s.key}"] [data-role="value"]`
+    );
+
+    const current = s.values.find(
+      ([value]) => value === state.ui[s.key]
+    );
+
+    if (out) {
+      out.textContent = `‹  ${current ? current[1] : "?"}  ›`;
+    }
   }
 }
 
