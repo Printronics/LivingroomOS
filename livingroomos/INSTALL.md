@@ -328,7 +328,8 @@ The checker is intended to identify important system requirements such as:
 - Debian 13 (Trixie)
 - x86_64 architecture
 - Python 3.11 or newer
-- Linux kernel 5.3 or newer
+- Linux kernel 5.3 or newer with `pidfd_open` and `pidfd_send_signal`
+- systemd running
 - Google Chrome
 - labwc
 - greetd
