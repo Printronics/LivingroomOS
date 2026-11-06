@@ -582,7 +582,11 @@ To remove the application after disabling its services:
 sudo rm -rf /opt/livingroomos
 ```
 
-Remove only the systemd units and Polkit rules that were installed specifically for LivingroomOS. Remove the supplied rule with:\n\n```bash\nsudo rm -f /etc/polkit-1/rules.d/50-livingroomos-power.rules\n```
+Remove only the systemd units and Polkit rules that were installed specifically for LivingroomOS. Remove the supplied rule with:
+
+```bash
+sudo rm -f /etc/polkit-1/rules.d/50-livingroomos-power.rules
+```
 
 Reload systemd after removing system units:
 
