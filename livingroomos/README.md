@@ -92,7 +92,7 @@ The backend is intended to listen only on `127.0.0.1`, port `8750` by default. D
 - The backend accepts connections only from loopback hostnames.
 - State-changing API requests require the `X-LivingroomOS: 1` header.
 - Application commands are defined by the administrator in the settings file; the frontend submits application IDs, not shell commands.
-- Restart and shutdown are mapped to fixed system commands.
+- Restart and shutdown are mapped to fixed system commands and authorized by the bundled Polkit rule for the dedicated `livingroomos` account.
 - The service account should not own or be able to modify application code under `/opt/livingroomos`.
 - The backend and launched applications currently share the dedicated `livingroomos` user. This limits isolation if an application is compromised; see [the security documentation](docs/SICHERHEIT.md).
 
