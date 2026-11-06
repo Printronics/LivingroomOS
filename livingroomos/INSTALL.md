@@ -411,11 +411,18 @@ The greetd configuration is installed separately in Section 11. Reloading the sy
 
 The backend requests restart and shutdown through fixed `systemctl reboot` and `systemctl poweroff` commands. Authorization is handled by Debian's systemd-logind and Polkit policy.
 
-The standard systemd policy permits reboot and power-off from an active local session. This is not a LivingroomOS-specific permission and is not exclusive to the `livingroomos` account. The dedicated service account is the active user during the configured greetd session.
+The repository includes a narrowly scoped JavaScript Polkit rule at `system/polkit/50-livingroomos-power.rules`. Install it system-wide:
 
-**Important:** The current repository does not contain a file under `system/polkit/`. Therefore there is no project-specific Polkit rule to copy or install. Do not follow instructions from older versions of this guide that imply such a rule is included, and do not add a broad rule granting general administrator or systemd-management permissions.
+```bash
+sudo install -d -o root -g root -m 755 /etc/polkit-1/rules.d
+sudo install -o root -g root -m 644 \
+    /opt/livingroomos/system/polkit/50-livingroomos-power.rules \
+    /etc/polkit-1/rules.d/50-livingroomos-power.rules
+```
 
-Verify restart and shutdown on a dedicated test machine while logged in through the configured greetd session. The security documentation describes this limitation; do not claim that these actions are restricted exclusively to the service account.
+The rule grants only the dedicated `livingroomos` account permission for the four explicit systemd-logind actions covering reboot and power-off, including the multiple-session variants. It does not grant general administrator privileges or permission for suspend, hibernate, or unrelated Polkit actions. Polkit monitors its rules directories and reloads rules when files change; a daemon restart is normally unnecessary.
+
+Because the backend and launched applications share the `livingroomos` UID, any process that gains code execution as that account can also request these power actions. Keep the account dedicated to LivingroomOS and test restart and shutdown on the target Debian 13 machine.
 
 ## 14. Enable automatic startup
 
@@ -575,7 +582,7 @@ To remove the application after disabling its services:
 sudo rm -rf /opt/livingroomos
 ```
 
-Remove only the systemd units and Polkit rules that were installed specifically for LivingroomOS.
+Remove only the systemd units and Polkit rules that were installed specifically for LivingroomOS. Remove the supplied rule with:\n\n```bash\nsudo rm -f /etc/polkit-1/rules.d/50-livingroomos-power.rules\n```
 
 Reload systemd after removing system units:
 
