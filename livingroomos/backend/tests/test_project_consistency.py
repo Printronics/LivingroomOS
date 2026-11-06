@@ -79,8 +79,12 @@ class ShippedConfigTests(unittest.TestCase):
 
     def test_trusted_dirs_are_absolute_and_not_architecture_specific(self) -> None:
         dirs = self.store.server["trusted_bin_dirs"]
+        self.assertTrue(dirs, "No trusted executable directories configured")
         self.assertTrue(all(d.startswith("/") for d in dirs))
-        self.assertTrue(all(d.startswith("/") for d in dirs))
+        self.assertFalse(
+            any(ARM_WORDS.search(d) for d in dirs),
+            "Trusted executable directories must not be architecture-specific",
+        )
 
     def test_config_text_names_no_architecture(self) -> None:
         text = (BACKEND / "config" / "settings.json").read_text(encoding="utf-8")
@@ -195,9 +199,14 @@ class DocumentationTests(unittest.TestCase):
 
 class SystemFilesTests(unittest.TestCase):
     def test_json_policies_are_valid(self) -> None:
-        for path in (ROOT / "system" / "google-chrome-stable").glob("*.json"):
+        policy_files = list((ROOT / "system" / "chrome").glob("*.json"))
+        self.assertTrue(policy_files, "No Chrome policy JSON files found")
+        for path in policy_files:
             with self.subTest(file=path.name):
-                self.assertIsInstance(json.loads(path.read_text(encoding="utf-8")), dict)
+                self.assertIsInstance(
+                    json.loads(path.read_text(encoding="utf-8")),
+                    dict,
+                )
 
     def test_google_chrome_is_never_started_without_its_sandbox(self) -> None:
         for path in (ROOT / "system").rglob("*"):
