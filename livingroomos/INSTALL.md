@@ -137,16 +137,7 @@ Verify the installation:
 google-chrome-stable --version
 ```
 
-Install the managed Chrome policy shipped with LivingroomOS:
-
-```bash
-sudo install -d -o root -g root -m 755 /etc/opt/chrome/policies/managed
-sudo install -o root -g root -m 644 \
-    /opt/livingroomos/system/chrome/livingroomos.json \
-    /etc/opt/chrome/policies/managed/livingroomos.json
-```
-
-The policy is installed system-wide and must remain owned by root. Restart Chrome after changing it.
+After deploying the LivingroomOS files in Section 6, install the managed Chrome policy from the project directory. Do not run the policy installation before Section 6, because the source file does not exist under `/opt/livingroomos` until deployment is complete.
 
 Do not substitute Chromium unless the project is explicitly changed and tested to support it.
 
@@ -179,8 +170,7 @@ Get the source code from the GitHub repository. **Use the release tag `v0.6`**, 
 
 ```bash
 cd ~
-git clone --branch v0.6 --single-branch \\
-    https://github.com/Printronics/LivingroomOS.git
+git clone --branch v0.6 --single-branch https://github.com/Printronics/LivingroomOS.git
 ```
 
 The command checks out the `v0.6` tag directly. Git may report a detached `HEAD`; this is expected when checking out a tag. You can verify the checked-out version with:
@@ -231,6 +221,17 @@ sudo chmod 755 \
 The application directory must remain protected against modification by the service account.
 
 Do not make `/opt/livingroomos` writable by the `livingroomos` user.
+
+Install the managed Chrome policy now that its source file exists in `/opt/livingroomos`:
+
+```bash
+sudo install -d -o root -g root -m 755 /etc/opt/chrome/policies/managed
+sudo install -o root -g root -m 644 \
+    /opt/livingroomos/system/chrome/livingroomos.json \
+    /etc/opt/chrome/policies/managed/livingroomos.json
+```
+
+The policy is installed system-wide and must remain owned by root. Restart Chrome after changing it.
 
 ---
 
