@@ -324,9 +324,18 @@ class AppLauncher:
             raise LaunchRefused(f"{real} gehört einem fremden Benutzer.")
         if st.st_mode & (stat.S_IWGRP | stat.S_IWOTH):
             raise LaunchRefused(f"{real} ist für Gruppe oder Andere beschreibbar.")
-        parent = real.parent.stat()
-        if parent.st_mode & stat.S_IWOTH and not parent.st_mode & stat.S_ISVTX:
-            raise LaunchRefused(f"Das Verzeichnis {real.parent} ist für Andere beschreibbar.")
+        parent = real.parent
+        while True:
+            parent_stat = parent.stat()
+            if parent_stat.st_uid not in (0, uid):
+                raise LaunchRefused(f"Das Verzeichnis {parent} gehört einem fremden Benutzer.")
+            if parent_stat.st_mode & stat.S_IWGRP:
+                raise LaunchRefused(f"Das Verzeichnis {parent} ist für die Gruppe beschreibbar.")
+            if parent_stat.st_mode & stat.S_IWOTH and not parent_stat.st_mode & stat.S_ISVTX:
+                raise LaunchRefused(f"Das Verzeichnis {parent} ist für Andere beschreibbar.")
+            if parent.parent == parent:
+                break
+            parent = parent.parent
 
     # ----------------------------------------------------- Rückkehr zum Launcher
 
