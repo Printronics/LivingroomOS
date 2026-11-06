@@ -1,10 +1,10 @@
 # LivingroomOS – Software Architecture
 
-**Status: Version 0.5.0**
+**Status: Version 0.6.0**
 
 This document describes what is **actually implemented**. Where the implementation differs from the original architectural design, the reasons are documented in Section 11.
 
-The security concept is documented in [docs/SECURITY.md](docs/SECURITY.md), and the system packages are listed in [docs/SYSTEM_DEPENDENCIES.md](docs/SYSTEM_DEPENDENCIES.md).
+The security concept is documented in [docs/SICHERHEIT.md](docs/SICHERHEIT.md), and the system packages are listed in [docs/SYSTEMABHAENGIGKEITEN.md](docs/SYSTEMABHAENGIGKEITEN.md).
 
 ## 1. Goals and Design Principles
 
@@ -97,7 +97,7 @@ Each task has exactly one designated location. Dependencies point downward only:
 | `bin/livingroomos-session` | Starts labwc and restarts it after crashes (up to 5 crashes within 60 seconds) |
 | `labwc/autostart`, `labwc/rc.xml` | Imports `WAYLAND_DISPLAY`, starts `livingroomos.target`, configures kiosk mode without default keyboard shortcuts, and defines the Home shortcut |
 | `systemd/user/*` | `livingroomos-backend.service`, `livingroomos-shell.service`, `livingroomos.target` |
-| `google-chrome-stable/livingroomos.json` | Google Chrome policies (developer tools disabled, password manager disabled, synchronization disabled) |
+| `chrome/livingroomos.json` | Google Chrome policies (developer tools disabled, password manager disabled, synchronization disabled) |
 | `bin/livingroomosctl` | Small utility that communicates with the backend over HTTP only (`home`, `status`, `wait`) |
 
 `tools/check_system.py` checks whether a system meets the requirements (architecture, Python, kernel, packages, and configuration).
@@ -178,7 +178,7 @@ The backend listens only on loopback and does not use authentication, because an
 
 The core measures are: predefined applications only, no shell, validated paths and permissions, filtered environment, separate browser profiles, prohibited browser switches, and targeted process termination.
 
-For the complete security concept, see `docs/SECURITY.md`.
+For the complete security concept, see `docs/SICHERHEIT.md`.
 
 ## 8. Target Architecture
 
