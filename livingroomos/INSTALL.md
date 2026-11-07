@@ -291,7 +291,17 @@ sudo install \
 
 This copies the supplied configuration into the exact path used by the backend. The source file remains part of the downloaded project; the runtime copy is owned by `livingroomos` because the application saves UI settings to it.
 
-Before the first start, edit the runtime copy and replace the example streaming URLs with the services you actually use. In particular, `example.com` and `example.org` are placeholders, and `localhost:8096` requires a media server listening on that address.
+The runtime `settings.json` now contains server/UI settings and optional debug entries. Web applications are configured separately in the root-owned program directory:
+
+```text
+/opt/livingroomos/backend/config/apps/
+├── netflix.cfg
+├── disneyplus.cfg
+├── youtube.cfg
+└── jellyfin.cfg
+```
+
+Edit or add these files as an administrator. Each `.cfg` file defines one app's URL, title, subtitle, icon, color, and browser options. The Jellyfin example expects a media server at `http://localhost:8096/`; change that URL in `jellyfin.cfg` if your server uses another address. See [App Configuration](docs/APP_KONFIGURATION.md). Restart the backend after changing app files.
 
 ---
 
