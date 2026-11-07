@@ -64,7 +64,7 @@ class LaunchSpec:
 
     app_id: str
     argv: tuple[str, ...]              # argv[0] is an absolute, validated path
-    env: Mapping[str, str]             # komplette Umgebung des Prozesses
+    env: Mapping[str, str]             # full process environment
     log_path: Path | None = None
     identity_arg: str | None = None    # exact argv entry that belongs to THIS instance only
     long_running: bool = True          # an immediate exit (including exit 0) counts as a failed launch
@@ -225,7 +225,7 @@ class ProcessManager:
             "last_exit": asdict(self._last_exit) if self._last_exit else None,
         }
 
-    # --------------------------------------------------- Lebenszyklus des Dienstes
+    # --------------------------------------------------- Service lifecycle
 
     async def startup(self) -> None:
         """Acquire the lock and adopt an app that is still running after a crash."""
@@ -375,7 +375,7 @@ class ProcessManager:
         )
         self._last_exit = info
         level = logging.WARNING if reason in ("crashed", "start_failed") else logging.INFO
-        log.log(level, "%s beendet: %s (code=%s, signal=%s, %.1f s)", app_id, reason, code, sig_name, runtime)
+        log.log(level, "%s exited: %s (code=%s, signal=%s, %.1f s)", app_id, reason, code, sig_name, runtime)
         if reason in ("crashed", "start_failed"):
             tail = _log_tail(log_path)
             if tail:
