@@ -1,13 +1,13 @@
 [Unit]
 Description=LivingroomOS Launcher (Google Chrome im Kiosk-Modus)
 After=livingroomos-backend.service
-# Bewusst nur "After", nicht "Requires": Startet das Backend neu, bleibt der Launcher offen und zeigt
-# "Backend nicht erreichbar", bis es wieder antwortet.
+# Intentionally use "After", not "Requires": if the backend restarts, the launcher stays open and displays
+# "Backend unavailable" until it responds again.
 
 [Service]
 Type=simple
 TimeoutStartSec=90
-# Chrome benötigt beschreibbare, explizite XDG-Verzeichnisse für Konfiguration und Cache.
+# Chrome requires explicit writable XDG directories for configuration and cache.
 Environment=XDG_CONFIG_HOME=%h/.local/share/livingroomos/chrome-config
 Environment=XDG_CACHE_HOME=%h/.local/share/livingroomos/chrome-cache
 ExecStartPre=/opt/livingroomos/system/bin/livingroomosctl wait 60
