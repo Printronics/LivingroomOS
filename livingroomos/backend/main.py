@@ -40,7 +40,10 @@ log = logging.getLogger("livingroomos")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    store = SettingsStore(CONFIG_PATH)  # SettingsError beendet den Start mit klarer Meldung
+    store = SettingsStore(
+        CONFIG_PATH,
+        app_config_dir=BASE_DIR / "config" / "apps",
+    )  # SettingsError beendet den Start mit klarer Meldung
     data_dir = Path(str(store.server.get("data_dir", "~/.local/share/livingroomos"))).expanduser()
     manager = ProcessManager(
         startup_grace=float(store.server.get("startup_grace_s", 1.0)),
