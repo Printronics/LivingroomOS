@@ -290,7 +290,7 @@ class AppLauncher:
             env.update(dict(app.env))
 
         # Chrome/Chromium starts a separate process, including Crashpad, for each app.
-        # Eine isolierte, beschreibbare XDG-Umgebung verhindert, dass Kindprozesse
+        # An isolated, writable XDG environment prevents child processes from
         # fall back to missing or foreign user paths. The paths
         # are stored centrally under data_dir and are independent of the backend launch context.
         config_home = ensure_private_dir(self._data_dir / "chrome-config")
