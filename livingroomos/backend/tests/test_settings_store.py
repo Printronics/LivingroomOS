@@ -61,7 +61,7 @@ class SettingsStoreTests(unittest.TestCase):
         self.path.write_text('{\n  "ui": {\n    "a": }\n}\n', encoding="utf-8")
         with self.assertRaises(SettingsError) as ctx:
             SettingsStore(self.path)
-        self.assertIn("Zeile 3", str(ctx.exception))
+        self.assertIn("line 3", str(ctx.exception))
 
     def test_top_level_must_be_object(self) -> None:
         self.path.write_text("[1, 2]", encoding="utf-8")
