@@ -24,14 +24,14 @@ The project targets Debian 13 (Trixie) on x86_64 / amd64 only.
 
 Create a `.cfg` file in `backend/config/apps/` to add a web app without changing
 Python or JavaScript code. Each file defines its title, subtitle, icon, color,
-URL, and browser options. See [App Configuration](docs/APP_KONFIGURATION.md)
+URL, and browser options. See [App Configuration](docs/APP_CONFIGURATION.md)
 for the complete format and examples.
 
 ## Configuration model
 
 Each web app has its own INI-style `.cfg` file in `backend/config/apps/`. The backend discovers and validates these files, then generates a restricted Chrome command. A file can set the app ID, title, subtitle, text/emoji icon, tile color, URL, fullscreen mode, and Wayland option. The filename must match the app ID (for example, `netflix.cfg` with `id = netflix`). Invalid files are skipped and reported as `config_problems` by the system-status API.
 
-The supplied app definitions are installed under `/opt/livingroomos/backend/config/apps/` and are administrator-owned. The writable runtime `settings.json` in `/var/lib/livingroomos/.config/livingroomos/` is reserved for server/UI settings and optional debug entries. See [App Configuration](docs/APP_KONFIGURATION.md).
+The supplied app definitions are installed under `/opt/livingroomos/backend/config/apps/` and are administrator-owned. The writable runtime `settings.json` in `/var/lib/livingroomos/.config/livingroomos/` is reserved for server/UI settings and optional debug entries. See [App Configuration](docs/APP_CONFIGURATION.md).
 
 ## Supported platform
 
@@ -109,7 +109,7 @@ The backend is intended to listen only on `127.0.0.1`, port `8750` by default. D
 - Web apps are defined by administrator-managed `backend/config/apps/*.cfg` files; `backend/config/settings.json` contains server/UI settings and optional legacy/debug entries. The frontend submits app IDs, never shell commands.
 - Restart and shutdown are mapped to fixed system commands and authorized by the bundled Polkit rule for the dedicated `livingroomos` account.
 - The service account should not own or be able to modify application code under `/opt/livingroomos`.
-- The backend and launched applications currently share the dedicated `livingroomos` user. This limits isolation if an application is compromised; see [the security documentation](docs/SICHERHEIT.md).
+- The backend and launched applications currently share the dedicated `livingroomos` user. This limits isolation if an application is compromised; see [the security documentation](docs/SECURITY.md).
 
 ## Development and tests
 
