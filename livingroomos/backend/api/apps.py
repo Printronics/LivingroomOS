@@ -58,7 +58,7 @@ async def launch_app(app_id: AppId, request: Request) -> dict:
             422,
             detail={
                 "code": "not_installed",
-                "message": f"„{exc.executable}“ wurde nicht gefunden. Bitte installieren oder config/settings.json anpassen.",
+                "message": f"„{exc.executable}“ wurde nicht gefunden. Bitte installieren oder die passende Datei unter config/apps/ prüfen.",
             },
         )
     except ProcessBusy as exc:
