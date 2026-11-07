@@ -61,7 +61,7 @@ export function initRemote(handler, options = {}) {
   } = options;
 
   const custom = new Map();           // custom mappings: key or code -> action
-  const lastDelivered = new Map();    // Aktion → Zeitpunkt der letzten Zustellung
+  const lastDelivered = new Map();    // Action -> time of last delivery
   const swallowOnKeyup = new Set();   // keys whose keyup event is suppressed
 
   function resolve(event) {
