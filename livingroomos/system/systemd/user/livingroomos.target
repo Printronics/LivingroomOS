@@ -1,4 +1,4 @@
 [Unit]
-Description=LivingroomOS (Backend und Launcher)
+Description=LivingroomOS (Backend and launcher)
 Wants=livingroomos-backend.service livingroomos-shell.service
 After=livingroomos-backend.service livingroomos-shell.service
