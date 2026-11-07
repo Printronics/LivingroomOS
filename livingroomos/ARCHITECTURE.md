@@ -14,7 +14,7 @@ At runtime, the system consists of only **a compositor, a browser, and one Pytho
 
 1. The backend is the only component that starts and stops processes. The frontend displays information and sends requests (for example, "start app X").
 2. Exactly one foreground application runs at a time. This reduces memory usage and makes focus management and returning to the launcher predictable.
-3. New applications are added through an entry in `settings.json`, without requiring additional application code.
+3. New web applications are added through individual `config/apps/*.cfg` files, without requiring additional application code.
 4. All hardware-specific details (x86_64) belong in configuration and system packages, never in application code.
 5. Returning to the launcher must also work if an external application freezes or crashes.
 6. No unnecessary frameworks: no desktop environment, no frontend framework, and no build step.
@@ -70,8 +70,10 @@ Each task has exactly one designated location. Dependencies point downward only:
 | `api/settings.py` | Read and modify interface settings (input validation with Pydantic) | Other configuration sections |
 | `services/app_launcher.py` | Converts an app ID into a validated launch command; checks configuration, executable path, ownership, permissions, profile directory, and environment; provides the return command | Process monitoring |
 | `services/process_manager.py` | Starts, monitors, and stops exactly one application; prevents duplicate starts, detects crashes, manages process groups, finds remaining child processes, stores state, and locks the backend | Building the command line |
-| `services/settings_store.py` | Loads and writes `settings.json` atomically and thread-safely; only the `ui` section is writable | Application validation |
-| `config/settings.json` | Server settings, UI settings, and application definitions | Runtime state |
+| `services/settings_store.py` | Loads and writes `settings.json` atomically and thread-safely; only the `ui` section is writable; combines CFG apps with legacy/debug entries | Application validation |
+| `services/app_config_loader.py` | Loads and validates individual web-app definitions from `config/apps/*.cfg`; generates a restricted Chrome command | Process monitoring |
+| `config/settings.json` | Server settings, UI settings, and optional legacy/debug application entries | Runtime state |
+| `config/apps/*.cfg` | One web-app definition per file (metadata, URL, and approved browser options) | Server and UI settings |
 | `tests/` | Unit, integration, and consistency tests (Section 9) | |
 
 ### 3.2 Frontend (`frontend/`)
@@ -121,7 +123,7 @@ The frontend communicates exclusively with `http://127.0.0.1:8750`. Commands use
 
 Rules:
 
-- **Intent only:** The frontend sends an application ID. The executable, arguments, and environment come exclusively from `settings.json` and are never included in the response.
+- **Intent only:** The frontend sends an application ID. The executable, arguments, and environment come from administrator-controlled CFG/JSON configuration and are never included in the response.
 - **Idempotency:** Launching an application that is already running returns the same status. Launching a different application while one is running returns 409 with the current status; the user decides what to do in the dialog.
 - **Write protection:** All write requests require the `X-LivingroomOS: 1` header (CSRF protection). `TrustedHostMiddleware` allows only `127.0.0.1` and `localhost` (DNS rebinding protection). Responses include a strict Content Security Policy.
 - **Error format:** `{"error": {"code": "...", "message": "..."}}`. The `message` is intended for humans and does not reveal internal details.
@@ -210,7 +212,7 @@ During development, the interface was tested with Playwright and Google Chrome (
 | Process management using only the standard library | No extra dependency; easy to test with real processes | `psutil` |
 | One foreground application | Predictable focus and return behavior, lower RAM usage | Multiple windows |
 | Loopback only, no network access | Smallest attack surface | LAN remote control (future) |
-| JSON configuration | `json` is part of the standard library; required by the project specification (`settings.json`) | TOML |
+| JSON and INI configuration | `json` and `configparser` are part of the Python standard library; JSON stores server/UI settings and CFG files define web apps | TOML |
 | Debian packages instead of PyPI by default | One package source; security updates through `apt` | Virtual environment with pip (Option B) |
 | Program code under `/opt` owned by root | The application cannot modify itself | Installation in the user's home directory |
 
@@ -223,7 +225,7 @@ The first design was a target architecture. The implementation is a prototype th
 | Applications as transient systemd units (`systemd-run`), `livingroomos-apps.slice`, `MemoryMax` | Direct launch with `create_subprocess_exec`, separate process group, termination using signals | Project requirement ("subprocess without `shell=True`", monitor PIDs, targeted termination); testable without systemd. `LaunchSpec` remains the interface, so a runner using `systemd-run` can replace it later. **Consequence:** no memory limit and no cgroup control over Google Chrome helper processes; mitigated by process groups and finding remaining processes. |
 | SSE stream `/api/v1/events` with snapshot | Polling `/apps/status` (1.2 to 6 seconds) | SSE requires a persistent connection, event bus, and reconnection logic. For state that changes infrequently, polling is simpler and inexpensive at 4-second idle intervals. **Consequence:** up to 1.2 seconds of delay for state changes. Can be replaced without changing the API contract. |
 | Package `livingroomos/` with `registry`, `supervisor`, `launchers`, `runner`, `compositor`, `events`, `platform`, `security`, `config` | Flat `api/` and `services/` modules using the filenames specified by the project requirements | The required filenames were specified by the project. Responsibilities are still separated (configuration validation and command construction in `AppLauncher`, process lifecycle in `ProcessManager`). |
-| TOML configuration with Pydantic and layers (`/etc`, user) | One JSON file, used at runtime from `~/.config/livingroomos/settings.json` (`LIVINGROOMOS_CONFIG`) | The project specified `settings.json`. Validation is implemented in `parse_apps`. |
+| TOML configuration with Pydantic and layers (`/etc`, user) | JSON for server/UI settings plus one INI-style CFG file per web app under `backend/config/apps/` | App metadata and URL are easy to edit independently. `app_config_loader.py` validates each file and creates the restricted Chrome command; `parse_apps` applies the launcher's additional security checks. |
 | Endpoints `/state`, `/home`, `/session/foreground/stop`, `/audio/volume`, `/system/power`, `/events` | `/apps/status`, `/apps/stop`, `/apps/{id}/stop`, `/system/status`, `/system/power/{restart,shutdown}`, `/settings` | Only the two fixed power actions (restart and shutdown) are implemented; audio and advanced power management are not. |
 | RFC 9457 error format | `{"error": {"code", "message"}}` | Simpler for the frontend; conveys the same information. |
 | Security middleware with Origin validation and JSON requirement | Host validation plus required `X-LivingroomOS` header | The custom header provides CSRF protection without Origin evaluation. |
