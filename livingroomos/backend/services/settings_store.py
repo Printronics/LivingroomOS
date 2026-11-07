@@ -1,7 +1,7 @@
-"""Lädt und speichert config/settings.json sowie einzelne App-CFG-Dateien.
+"""Loads and saves config/settings.json and individual app CFG files.
 
-Nur der Abschnitt "ui" ist über die API schreibbar. "server" und die
-App-Konfigurationen ändert ausschließlich der Administrator per Dateibearbeitung.
+Only the "ui" section can be written through the API. The "server" section and
+app configurations can be changed only by the administrator by editing the files.
 """
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ from .app_config_loader import load_app_configs
 
 
 class SettingsError(Exception):
-    """Konfiguration fehlt, ist ungültig oder nicht schreibbar."""
+    """Configuration is missing, invalid, or not writable."""
 
 
 class SettingsStore:
@@ -32,15 +32,15 @@ class SettingsStore:
         try:
             raw = json.loads(self.path.read_text(encoding="utf-8"))
         except FileNotFoundError as exc:
-            raise SettingsError(f"Konfigurationsdatei fehlt: {self.path}") from exc
+            raise SettingsError(f"Configuration file is missing: {self.path}") from exc
         except json.JSONDecodeError as exc:
             raise SettingsError(
-                f"{self.path.name} ist kein gültiges JSON (Zeile {exc.lineno}): {exc.msg}"
+                f"{self.path.name} is not valid JSON (line {exc.lineno}): {exc.msg}"
             ) from exc
         except OSError as exc:
-            raise SettingsError(f"{self.path} nicht lesbar: {exc.strerror}") from exc
+            raise SettingsError(f"{self.path} is not readable: {exc.strerror}") from exc
         if not isinstance(raw, dict):
-            raise SettingsError(f"{self.path.name}: Oberste Ebene muss ein Objekt sein.")
+            raise SettingsError(f"{self.path.name}: Top-level value must be an object.")
         with self._lock:
             self._data = raw
 
@@ -56,7 +56,7 @@ class SettingsStore:
 
     @property
     def apps(self) -> list[Any]:
-        """CFG-Web-Apps plus optionale Legacy-/Debug-Einträge aus settings.json."""
+        """CFG web apps plus optional legacy/debug entries from settings.json."""
         configured, self._app_config_problems = load_app_configs(self.app_config_dir)
         legacy = self._data.get("apps")
         if not isinstance(legacy, list):
@@ -68,7 +68,7 @@ class SettingsStore:
         return list(self._app_config_problems)
 
     def update_ui(self, values: dict[str, Any]) -> dict[str, Any]:
-        """Aktualisiert den Abschnitt "ui" und schreibt die Datei atomar."""
+        """Updates the "ui" section and writes the file atomically."""
         with self._lock:
             new_data = {**self._data, "ui": {**self.ui, **values}}
             self._write_atomic(new_data)
@@ -86,4 +86,4 @@ class SettingsStore:
         except OSError as exc:
             if tmp_name and os.path.exists(tmp_name):
                 os.unlink(tmp_name)
-            raise SettingsError(f"Einstellungen nicht speicherbar: {exc.strerror}") from exc
+            raise SettingsError(f"Could not save settings: {exc.strerror}") from exc
