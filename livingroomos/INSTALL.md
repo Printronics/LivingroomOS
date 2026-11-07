@@ -67,9 +67,9 @@ fi
 sudo install -d -o root -g root -m 755 /opt/livingroomos
 sudo cp -a "$PROJECT/." /opt/livingroomos/
 sudo chown -R root:root /opt/livingroomos
-sudo find /opt/livingroomos -type d -exec chmod 755 {} \\;
-sudo find /opt/livingroomos -type f -exec chmod 644 {} \\;
-sudo find /opt/livingroomos -type f -name '*.sh' -exec chmod 755 {} \\;
+sudo find /opt/livingroomos -type d -exec chmod 755 {} \;
+sudo find /opt/livingroomos -type f -exec chmod 644 {} \;
+sudo find /opt/livingroomos -type f -name '*.sh' -exec chmod 755 {} \;
 sudo chmod 755 \
     /opt/livingroomos/system/bin/livingroomos-session \
     /opt/livingroomos/system/bin/livingroomosctl
