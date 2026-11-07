@@ -281,7 +281,7 @@ class TestAbstuerze(Base):
 
 class TestIsolation(Base):
     async def test_umgebung_wird_gefiltert(self) -> None:
-        os.environ["LD_PRELOAD"] = "/nicht/laden.so"
+        os.environ["LD_PRELOAD"] = "/do-not-load.so"
         os.environ["GEHEIMER_TOKEN"] = "geheim"
         self.addCleanup(os.environ.pop, "LD_PRELOAD", None)
         self.addCleanup(os.environ.pop, "GEHEIMER_TOKEN", None)
