@@ -1,6 +1,6 @@
-"""LivingroomOS – Backend-Einstiegspunkt.
+"""LivingroomOS – Backend entry point.
 
-Start (aus dem Ordner backend/):
+Start (from the backend/ directory):
     python3 -m uvicorn main:app --loop asyncio --host 127.0.0.1 --port 8750
 """
 from __future__ import annotations
@@ -120,7 +120,7 @@ app.include_router(settings_api.router)
 if FRONTEND_DIR.is_dir():
     app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
 else:
-    log.warning("Frontend-Ordner fehlt: %s (nur API verfügbar)")
+    log.warning("Frontend directory is missing: %s (API only)")
 
 
 if __name__ == "__main__":
