@@ -273,28 +273,28 @@ class TestAbstuerze(Base):
         await asyncio.sleep(0.5)
         self.assertEqual(marker.read_text(), "x")
 
-    def test_rueckkehr_befehl_wird_validiert(self) -> None:
+    def test_return_to_launcher_command_is_validated(self) -> None:
         launcher = self.build([], server={"return_to_launcher_command": ["wlrctl", "--no-sandbox"]})
         self.assertIsNone(launcher._return_cmd)
         self.assertTrue(any("return_to_launcher_command" in p for p in launcher.problems))
 
 
 class TestIsolation(Base):
-    async def test_umgebung_wird_gefiltert(self) -> None:
+    async def test_environment_is_filtered(self) -> None:
         os.environ["LD_PRELOAD"] = "/do-not-load.so"
-        os.environ["GEHEIMER_TOKEN"] = "geheim"
+        os.environ["SECRET_TOKEN"] = "secret"
         self.addCleanup(os.environ.pop, "LD_PRELOAD", None)
-        self.addCleanup(os.environ.pop, "GEHEIMER_TOKEN", None)
+        self.addCleanup(os.environ.pop, "SECRET_TOKEN", None)
         # No braces in the argument: {name} would be an (unknown) placeholder and is rejected.
         code = "import os,time; print('\\n'.join(k + '=' + v for k, v in os.environ.items()), flush=True); time.sleep(60)"
-        launcher = self.build([app("a", PY, "-c", code, env={"MEINE_VAR": "42"})])
+        launcher = self.build([app("a", PY, "-c", code, env={"MY_VAR": "42"})])
         await launcher.launch("a")
         log_file = self.data / "logs" / "a.log"
-        await self.until(lambda: log_file.exists() and "MEINE_VAR" in log_file.read_text())
+        await self.until(lambda: log_file.exists() and "MY_VAR" in log_file.read_text())
         text = log_file.read_text()
-        self.assertIn("MEINE_VAR=42", text)
+        self.assertIn("MY_VAR=42", text)
         self.assertNotIn("LD_PRELOAD", text)
-        self.assertNotIn("GEHEIMER_TOKEN", text)
+        self.assertNotIn("SECRET_TOKEN", text)
         self.assertIn("PATH=/usr/local/bin:/usr/bin:/opt:" + str(self.tmp / "bin"), text)
 
     async def test_profilordner_privat_und_symlink_abgelehnt(self) -> None:
