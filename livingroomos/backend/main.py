@@ -55,7 +55,7 @@ async def lifespan(app: FastAPI):
     app.state.store = store
     app.state.manager = manager
     app.state.launcher = launcher
-    log.info("Konfiguration: %s", CONFIG_PATH)
+    log.info("Configuration: %s", CONFIG_PATH)
     yield
     await launcher.shutdown()
 
