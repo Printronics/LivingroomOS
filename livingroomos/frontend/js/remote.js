@@ -6,7 +6,7 @@
    Aktionen:  up | down | left | right | ok | back | home | menu | next | prev
    (next/prev are generated from Tab/Shift+Tab so Tab never moves browser focus)
 
-   Schutz vor Tastenwiederholung (Halten, prellende Fernbedienungen, Doppelklicks):
+   Protection against repeated key events (held keys, bouncing remote controls, double presses):
    - Direction keys may repeat, but no more often than every `repeatInterval` ms. A slow
      rendering frame therefore does not queue up events.
    - ok/back/home/menu are never triggered by holding a key (auto-repeat) and are debounced.
