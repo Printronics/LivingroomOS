@@ -301,7 +301,16 @@ The runtime `settings.json` now contains server/UI settings and optional debug e
 └── jellyfin.cfg
 ```
 
-Edit or add these files as an administrator. Each `.cfg` file defines one app's URL, title, subtitle, icon, color, and browser options. The Jellyfin example expects a media server at `http://localhost:8096/`; change that URL in `jellyfin.cfg` if your server uses another address. See [App Configuration](docs/APP_KONFIGURATION.md). Restart the backend after changing app files.
+The directory is part of the application installation and must remain root-owned and not writable by the `livingroomos` service account. Verify the shipped definitions with:
+
+```bash
+sudo find /opt/livingroomos/backend/config/apps -maxdepth 1 -type f -name '*.cfg' -printf '%f\\n'
+sudo find /opt/livingroomos/backend/config/apps -maxdepth 1 -type f -name '*.cfg' -exec stat -c '%U:%G %a %n' {} \\\;
+```
+
+Edit or add these files as an administrator. Each `.cfg` file defines one app's ID, URL, title, subtitle, icon, color, category, and approved browser options. The filename must match the `id` field (for example, `netflix.cfg` / `id = netflix`). The Jellyfin example expects a media server at `http://localhost:8096/`; change that URL in `jellyfin.cfg` if your server uses another address. See [App Configuration](docs/APP_KONFIGURATION.md) for the complete schema and validation rules.
+
+After adding or changing a CFG file, restart `livingroomos-backend.service` from the `livingroomos` user manager (see Section 13 for the exact user-manager environment). The app list is reloaded when the backend starts; no frontend rebuild is required.
 
 ---
 
