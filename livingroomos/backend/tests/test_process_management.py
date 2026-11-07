@@ -87,10 +87,10 @@ class Base(unittest.IsolatedAsyncioTestCase):
         return pm_mod._proc_starttime(pid) is not None
 
 
-class TestKonfiguration(Base):
-    def test_ungueltige_eintraege_werden_abgelehnt(self) -> None:
+class TestConfiguration(Base):
+    def test_invalid_entries_are_rejected(self) -> None:
         apps, problems = parse_apps([
-            app("a", PY, "{shell}"),                                         # unbekannter Platzhalter
+            app("a", PY, "{shell}"),                                         # unknown placeholder
             app("b", "google-chrome-stable", "--app=https://x"),                         # browser without a profile
             app("c", "google-chrome-stable", "--no-sandbox", "--user-data-dir={profile_dir}"),
             app("d", "google-chrome-stable", "--remote-debugging-port=9222", "--user-data-dir={profile_dir}"),
@@ -104,12 +104,12 @@ class TestKonfiguration(Base):
         self.assertEqual(list(apps), ["ok"])
         self.assertEqual(len(problems), 9, problems)
 
-    def test_doppelte_id(self) -> None:
+    def test_duplicate_id(self) -> None:
         apps, problems = parse_apps([app("x", PY), app("x", PY)])
         self.assertEqual(len(apps), 1)
         self.assertEqual(len(problems), 1)
 
-    def test_ausfuehrbare_datei_pruefungen(self) -> None:
+    def test_executable_file_validation(self) -> None:
         launcher = self.build([])
         tool = self.tmp / "bin" / "tool"
         tool.write_text("#!/bin/sh\nsleep 60\n")
@@ -143,12 +143,12 @@ class TestKonfiguration(Base):
         with self.assertRaises(NotInstalled):
             launcher._resolve_executable("does-not-exist")
 
-    def test_liste_enthaelt_keine_befehle(self) -> None:
+    def test_public_app_list_contains_no_commands(self) -> None:
         launcher = self.build([app("x", PY, "-c", "SECRET")])
         self.assertNotIn("SECRET", json.dumps(launcher.list_apps()))
 
 
-class TestLebenszyklus(Base):
+class TestLifecycle(Base):
     async def test_start_status_stop(self) -> None:
         launcher = self.build([app("a", PY, "-c", SLEEP)])
         st = await launcher.launch("a")
@@ -165,7 +165,7 @@ class TestLebenszyklus(Base):
         self.assertFalse(self.alive(pid))
         self.assertFalse((self.run_dir / "state.json").exists())
 
-    async def test_doppelstart(self) -> None:
+    async def test_duplicate_start(self) -> None:
         launcher = self.build([app("a", PY, "-c", SLEEP), app("b", PY, "-c", SLEEP)])
         r = await asyncio.gather(launcher.launch("a"), launcher.launch("b"), return_exceptions=True)
         self.assertEqual(sum(isinstance(x, ProcessBusy) for x in r), 1, r)
@@ -174,16 +174,16 @@ class TestLebenszyklus(Base):
         with self.assertRaises(ProcessBusy):
             await launcher.launch("b")
 
-    async def test_gezieltes_beenden(self) -> None:
+    async def test_targeted_stop(self) -> None:
         launcher = self.build([app("a", PY, "-c", SLEEP)])
         await launcher.launch("a")
-        st = await launcher.stop("anderes")  # falsche App: nichts passiert
+        st = await launcher.stop("other")  # wrong app: nothing happens
         self.assertEqual(st["app_id"], "a")
         self.assertTrue(self.alive(st["pid"]))
         st = await launcher.stop("a")
         self.assertEqual(st["state"], "idle")
 
-    async def test_sigkill_bei_hartnaeckigem_prozess(self) -> None:
+    async def test_sigkill_for_unresponsive_process(self) -> None:
         code = "import signal,time; signal.signal(signal.SIGTERM, signal.SIG_IGN); time.sleep(60)"
         launcher = self.build([app("a", PY, "-c", code)])
         await launcher.launch("a")
@@ -193,7 +193,7 @@ class TestLebenszyklus(Base):
         self.assertGreater(time.monotonic() - t0, 1.2)
         self.assertEqual(st["last_exit"]["signal"], "SIGKILL")
 
-    async def test_kindprozesse_der_gruppe_werden_beendet(self) -> None:
+    async def test_child_processes_in_group_are_terminated(self) -> None:
         code = "import subprocess,sys,time; subprocess.Popen([sys.executable,'-c','import time; time.sleep(60)']); time.sleep(60)"
         launcher = self.build([app("a", PY, "-c", code)])
         await launcher.launch("a")
@@ -215,13 +215,13 @@ class TestLebenszyklus(Base):
         return found
 
 
-class TestAbstuerze(Base):
+class TestCrashes(Base):
     async def exit_of(self, launcher: AppLauncher, app_id: str) -> dict:
         await launcher.launch(app_id)
         await self.until(lambda: launcher.status()["state"] == "idle", 6)
         return launcher.status()["last_exit"]
 
-    async def test_klassifikation(self) -> None:
+    async def test_exit_classification(self) -> None:
         launcher = self.build([
             app("crash", PY, "-c", "import sys,time; time.sleep(0.8); sys.exit(3)"),
             app("quick", PY, "-c", "import sys; sys.exit(7)"),
@@ -239,7 +239,7 @@ class TestAbstuerze(Base):
         self.assertEqual((got["killed"]["reason"], got["killed"]["signal"]), ("crashed", "SIGKILL"))
         self.assertEqual([got[k]["seq"] for k in got], [1, 2, 3, 4, 5, 6])  # jedes Ende einmal, fortlaufend
 
-    async def test_log_datei_und_absturzausgabe(self) -> None:
+    async def test_log_file_and_crash_output(self) -> None:
         code = "import sys,time; print('boom-stdout'); sys.stdout.flush(); sys.stderr.write('boom-stderr\\n'); time.sleep(0.8); sys.exit(2)"
         launcher = self.build([app("a", PY, "-c", code)])
         logging.disable(logging.NOTSET)
@@ -262,7 +262,7 @@ class TestAbstuerze(Base):
         self.assertTrue((logs / "a.log.1").exists())
         self.assertLess((logs / "a.log").stat().st_size, 200)
 
-    async def test_rueckkehr_hook_genau_einmal(self) -> None:
+    async def test_return_hook_runs_exactly_once(self) -> None:
         marker = self.tmp / "marker"
         launcher = self.build(
             [app("a", PY, "-c", "import time; time.sleep(0.6)")],
@@ -297,7 +297,7 @@ class TestIsolation(Base):
         self.assertNotIn("SECRET_TOKEN", text)
         self.assertIn("PATH=/usr/local/bin:/usr/bin:/opt:" + str(self.tmp / "bin"), text)
 
-    async def test_profilordner_privat_und_symlink_abgelehnt(self) -> None:
+    async def test_profile_directory_is_private_and_symlinks_are_rejected(self) -> None:
         launcher = self.build([app("a", PY, "-c", SLEEP, "--user-data-dir={profile_dir}")])
         await launcher.launch("a")
         prof = self.data / "profiles" / "a"
@@ -312,7 +312,7 @@ class TestIsolation(Base):
             await launcher.launch("a")
         self.assertEqual(launcher.status()["state"], "idle")
 
-    async def test_nachzuegler_nur_mit_exaktem_profil_argument(self) -> None:
+    async def test_stragglers_require_exact_profile_argument(self) -> None:
         leader = (
             "import subprocess,sys,time\n"
             "subprocess.Popen([sys.executable,'-c','import time; time.sleep(60)',sys.argv[1]], start_new_session=True)\n"
@@ -329,7 +329,7 @@ class TestIsolation(Base):
         self.assertIsNone(other.poll(), "foreign profile must not be terminated")
         self.assertIsNone(plain.poll(), "same-named executable must not be terminated")
 
-    async def test_reste_frueherer_instanz_werden_vor_dem_start_beendet(self) -> None:
+    async def test_previous_instance_leftovers_are_stopped_before_launch(self) -> None:
         arg = "--user-data-dir=" + str(self.data / "profiles" / "a")
         orphan = self.bystander(arg)
         launcher = self.build([app("a", PY, "-c", SLEEP, "--user-data-dir={profile_dir}")])
@@ -338,8 +338,8 @@ class TestIsolation(Base):
         self.assertNotEqual(launcher.status()["pid"], orphan.pid)
 
 
-class TestSperreUndUebernahme(Base):
-    async def test_zweites_backend_wird_ausgesperrt(self) -> None:
+class TestLockAndRecovery(Base):
+    async def test_second_backend_is_locked_out(self) -> None:
         a = self.build([])
         await a.startup()
         b = self.build([])
@@ -348,7 +348,7 @@ class TestSperreUndUebernahme(Base):
         await a.shutdown()
         await b.startup()  # allowed after releasing the lock
 
-    async def test_app_wird_nach_backend_absturz_uebernommen(self) -> None:
+    async def test_app_is_adopted_after_backend_crash(self) -> None:
         launcher = self.build([app("a", PY, "-c", SLEEP, "--user-data-dir={profile_dir}"), app("b", PY, "-c", SLEEP)])
         helper = (
             "import asyncio, os, sys\n"
@@ -381,7 +381,7 @@ class TestSperreUndUebernahme(Base):
         self.assertFalse(self.alive(pid))
         self.assertFalse((self.run_dir / "state.json").exists())
 
-    async def test_veraltete_zustandsdatei_wird_verworfen(self) -> None:
+    async def test_stale_state_file_is_discarded(self) -> None:
         launcher = self.build([])
         self.run_dir.mkdir(parents=True)
         (self.run_dir / "state.json").write_text(json.dumps({
@@ -391,7 +391,7 @@ class TestSperreUndUebernahme(Base):
         self.assertEqual(launcher.status()["state"], "idle")
         self.assertFalse((self.run_dir / "state.json").exists())
 
-    async def test_pid_recycling_wird_erkannt(self) -> None:
+    async def test_pid_reuse_is_detected(self) -> None:
         """Same PID, different start time: the backend must NOT adopt the foreign process."""
         victim = self.bystander()
         self.run_dir.mkdir(parents=True)
