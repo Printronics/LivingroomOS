@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Startet LivingroomOS lokal (nur 127.0.0.1). Schreibt nichts außerhalb des Projektordners,
-# außer Browserprofilen unter ~/.local/share/livingroomos, sobald eine Google Chrome-App startet.
+# Starts LivingroomOS locally (127.0.0.1 only). Writes nothing outside the project directory,
+# except for browser profiles under ~/.local/share/livingroomos when a Google Chrome app starts.
 set -euo pipefail
 cd "$(dirname "$0")/backend"
 if [ -f ../.venv/bin/activate ]; then
