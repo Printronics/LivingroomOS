@@ -6,7 +6,7 @@ Stand: 2026-11-03 · Geltungsbereich: `backend/services/app_launcher.py`, `backe
 
 | Nr. | Ziel |
 | --- | --- |
-| S1 | Das Backend startet nur Programme, die der Administrator in `config/settings.json` vorab festgelegt hat, und nur mit den dort festgelegten Parametern. |
+| S1 | Das Backend startet nur Apps, die der Administrator in `config/apps/*.cfg` oder als Legacy-/Debug-Eintrag in `config/settings.json` vorab festgelegt hat. |
 | S2 | Aus dem Frontend, aus dem Netzwerk oder aus einer Webseite lässt sich weder ein Befehl noch ein Parameter einschleusen. |
 | S3 | Das Backend beendet ausschließlich Prozesse, die es selbst gestartet hat (oder nach einem Absturz sicher wiedererkennt). Andere Browserfenster, auch Google Chrome des Benutzers, bleiben unberührt. |
 | S4 | Jede App ist von den anderen getrennt: eigenes Browserprofil, eigene Prozessgruppe, gefilterte Umgebung. |
@@ -21,7 +21,7 @@ Stand: 2026-11-03 · Geltungsbereich: `backend/services/app_launcher.py`, `backe
 Webseite in einer App ──╳──►  127.0.0.1:8750 (Backend)      Host-Prüfung, X-LivingroomOS-Header, kein CORS
 Launcher-Frontend  ──────►  Backend                         sendet nur App-IDs
 Backend (Benutzer livingroomos) ──► App-Prozess (gleicher Benutzer)   gleiche Rechte: Isolation nur teilweise
-settings.json  ◄── Administrator (vertraut)
+settings.json und config/apps/*.cfg  ◄── Administrator (vertraut)
 ```
 
 **Wovor das Konzept schützt**
@@ -36,13 +36,57 @@ settings.json  ◄── Administrator (vertraut)
 
 - Code, der bereits als Benutzer `livingroomos` läuft (z. B. nach Browser-Exploit, der die Google Chrome-Sandbox verlässt).
 - Angreifer mit physischem Zugriff oder Root-Rechten.
-- Einen Administrator, der in `settings.json` bewusst Gefährliches einträgt (die Prüfungen fangen nur häufige Fehler ab).
+- Einen Administrator, der in `settings.json` oder einer App-CFG bewusst Gefährliches einträgt (die Prüfungen fangen nur häufige Fehler ab).
 
 ## 3. Maßnahmen
 
 | Anforderung | Maßnahme | Ort |
 | --- | --- | --- |
-| Nur vordefinierte Programme und Parameter | App-Liste nur aus `settings.json`; API nimmt nur eine App-ID mit festem Format (`^[a-z0-9][a-z0-9_-]{0,31}$`). Die Befehlszeile verlässt das Backend nie. | `app_launcher.parse_apps`, `api/apps.py` |
+| Nur vordefinierte Programme und Parameter | App-Liste aus geprüften `config/apps/*.cfg`-Dateien und optionalen Legacy-Einträgen in `settings.json`; CFG-Dateien dürfen nur freigegebene Browser und HTTP(S)-URLs definieren. Die API nimmt nur eine App-ID mit festem Format (`^[a-z0-9][a-z0-9_-]{0,31}# LivingroomOS – Sicherheitskonzept Prozessmanagement
+
+Stand: 2026-11-03 · Geltungsbereich: `backend/services/app_launcher.py`, `backend/services/process_manager.py`
+
+## 1. Schutzziele
+
+| Nr. | Ziel |
+| --- | --- |
+| S1 | Das Backend startet nur Apps, die der Administrator in `config/apps/*.cfg` oder als Legacy-/Debug-Eintrag in `config/settings.json` vorab festgelegt hat. |
+| S2 | Aus dem Frontend, aus dem Netzwerk oder aus einer Webseite lässt sich weder ein Befehl noch ein Parameter einschleusen. |
+| S3 | Das Backend beendet ausschließlich Prozesse, die es selbst gestartet hat (oder nach einem Absturz sicher wiedererkennt). Andere Browserfenster, auch Google Chrome des Benutzers, bleiben unberührt. |
+| S4 | Jede App ist von den anderen getrennt: eigenes Browserprofil, eigene Prozessgruppe, gefilterte Umgebung. |
+| S5 | Ausfälle (Absturz, Hänger, Backend-Neustart) führen immer zurück in einen definierten Zustand und zum Launcher. |
+| S6 | Fehler sind nachvollziehbar protokolliert, ohne dass Geheimnisse an die Oberfläche gelangen. |
+
+## 2. Annahmen und Bedrohungsmodell
+
+**Vertrauensgrenzen**
+
+```
+Webseite in einer App ──╳──►  127.0.0.1:8750 (Backend)      Host-Prüfung, X-LivingroomOS-Header, kein CORS
+Launcher-Frontend  ──────►  Backend                         sendet nur App-IDs
+Backend (Benutzer livingroomos) ──► App-Prozess (gleicher Benutzer)   gleiche Rechte: Isolation nur teilweise
+settings.json und config/apps/*.cfg  ◄── Administrator (vertraut)
+```
+
+**Wovor das Konzept schützt**
+
+- Fremde Webseiten oder Skripte, die die lokale API ansprechen (CSRF, DNS-Rebinding).
+- Manipulierte Eingaben an die API (Befehlseinschleusung, Pfad- oder Parameter-Manipulation).
+- Versehentlich unsichere Konfiguration (z. B. `--no-sandbox`, Standard-Browserprofil, beschreibbare Programme).
+- Falsches Beenden fremder Prozesse durch PID-Wiederverwendung oder zu breite Suchmuster.
+- Verwaiste Prozesse nach Abstürzen und Doppelstarts.
+
+**Wovor es nicht schützt (Restrisiken, siehe Abschnitt 7)**
+
+- Code, der bereits als Benutzer `livingroomos` läuft (z. B. nach Browser-Exploit, der die Google Chrome-Sandbox verlässt).
+- Angreifer mit physischem Zugriff oder Root-Rechten.
+- Einen Administrator, der in `settings.json` oder einer App-CFG bewusst Gefährliches einträgt (die Prüfungen fangen nur häufige Fehler ab).
+
+## 3. Maßnahmen
+
+| Anforderung | Maßnahme | Ort |
+| --- | --- | --- |
+| Nur vordefinierte Programme und Parameter | ). Die Befehlszeile verlässt das Backend nie. | `app_launcher.parse_apps`, `api/apps.py` |
 | Keine Shell | `asyncio.create_subprocess_exec` mit Argumentliste, nie `shell=True`. Erlaubt sind nur die Platzhalter `{python}` und `{profile_dir}`; jedes andere `{wort}` in einem Argument sowie NUL-Zeichen werden beim Laden abgelehnt (bewusst streng: Argumente mit geschweiften Klammern, z. B. JSON, sind nicht möglich). | `process_manager.start`, `parse_apps` |
 | Programmpfad abgesichert | Bare Namen werden nur in `trusted_bin_dirs` gesucht (nicht in `$PATH` des Benutzers). Relative Pfade sind verboten. Der echte Pfad (`realpath`) muss in einem vertrauenswürdigen Verzeichnis liegen. Datei: Besitzer root oder Dienstbenutzer, nicht für Gruppe/Andere beschreibbar; Elternverzeichnis nicht für Andere beschreibbar. | `AppLauncher._resolve_executable` |
 | Gefährliche Schalter | Liste verbotener Schalter (`--no-sandbox`, `--remote-debugging-*`, `--disable-web-security`, `--load-extension`, `--ignore-certificate-errors` …) wird beim Laden abgelehnt. | `FORBIDDEN_FLAGS` |
@@ -72,7 +116,7 @@ settings.json  ◄── Administrator (vertraut)
 | Pfad | Zugriff | Modus |
 | --- | --- | --- |
 | `/opt/livingroomos/backend/config/settings.json` | Nur Lesen; Vorlage, Änderungen werden nicht zur Laufzeit gespeichert | root:root, 0644 |
-| `/var/lib/livingroomos/.config/livingroomos/settings.json` | Lesen/Schreiben; API darf nur den Abschnitt `ui` ändern | livingroomos:livingroomos, 0600 |
+| `/var/lib/livingroomos/.config/livingroomos/settings.json` | Lesen/Schreiben; API darf nur den Abschnitt `ui` ändern | livingroomos:livingroomos, 0600 |\n| `/opt/livingroomos/backend/config/apps/*.cfg` | Nur Lesen; App-Definitionen werden vom Administrator gepflegt | root:root, 0644 |
 | `~/.local/share/livingroomos/profiles/<id>/` | Lesen/Schreiben | 0700 |
 | `~/.local/share/livingroomos/logs/` | Schreiben | 0700, Dateien 0600 |
 | `$XDG_RUNTIME_DIR/livingroomos/` (`backend.lock`, `state.json`) | Lesen/Schreiben | 0700, Dateien 0600 |
@@ -119,12 +163,12 @@ Der saubere nächste Schritt ist, Apps als **transiente systemd-User-Units** (`s
 | Google Chrome-Prozesse, die weder in der Prozessgruppe noch mit dem Profil-Argument auftauchen, werden nicht erfasst. | Gering | Die Nachzügler-Suche deckt Renderer/GPU/Utility ab, weil Google Chrome das Argument vererbt. Mit cgroups (Abschnitt 6) lückenlos. |
 | Übernommene App (nach Backend-Absturz): Exit-Code unbekannt, Absturz nicht von Normalende unterscheidbar (Grund `ended`). | Gering | Hinnehmbar; Hinweis im Log. |
 | Fenster-Fokus zurück zum Launcher hängt vom Compositor ab. | Gering | Ohne `wlrctl`: Fenster schließt, Launcher liegt darunter und wird sichtbar. |
-| Administratorfehler in `settings.json`. | Gering | Beim Laden geprüft; fehlerhafte Einträge werden übersprungen und unter `/api/v1/system/status` als `config_problems` gemeldet. |
+| Fehlerhafte App-Konfiguration in `settings.json` oder `.cfg`. | Gering | Beim Laden geprüft; fehlerhafte Einträge/Dateien werden übersprungen und unter `/api/v1/system/status` als `config_problems` gemeldet. |
 | Race zwischen Prüfung und Signal bei Nachzüglern. | Sehr gering | `pidfd` fixiert den Prozess; Gegenprüfung unmittelbar vor dem Signal; nur eigene UID. |
 
 ## 8. Prüfliste vor dem Einsatz
 
-- [ ] `settings.json` gehört root (oder `livingroomos`) und ist nicht für Andere beschreibbar.
+- [ ] `settings.json` gehört root (oder `livingroomos`) und ist nicht für Andere beschreibbar.\n- [ ] App-CFG-Dateien unter `/opt/livingroomos/backend/config/apps/` gehören root und sind nicht für den Dienstbenutzer beschreibbar.
 - [ ] Alle Programme liegen in `trusted_bin_dirs` und gehören root.
 - [ ] Jede Browser-App hat `--user-data-dir={profile_dir}`; kein verbotener Schalter.
 - [ ] Backend läuft als `livingroomos`, nicht als root.
