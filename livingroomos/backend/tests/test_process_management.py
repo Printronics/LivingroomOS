@@ -1,6 +1,6 @@
-"""Tests für Prozessmanagement und Start-Prüfungen. Echte Prozesse, nur Standardbibliothek.
+"""Tests for process management and launch validation. Real processes, standard library only.
 
-Ausführen (aus backend/):  python3 -m unittest discover -s tests -v
+Run from backend/: python3 -m unittest discover -s tests -v
 """
 from __future__ import annotations
 
@@ -75,7 +75,7 @@ class Base(unittest.IsolatedAsyncioTestCase):
             if cond():
                 return
             await asyncio.sleep(0.05)
-        self.fail("Bedingung nicht rechtzeitig erfüllt")
+        self.fail("Condition was not met in time")
 
     def bystander(self, *extra: str) -> subprocess.Popen:
         p = subprocess.Popen([sys.executable, "-c", SLEEP, *extra], start_new_session=True)
@@ -91,7 +91,7 @@ class TestKonfiguration(Base):
     def test_ungueltige_eintraege_werden_abgelehnt(self) -> None:
         apps, problems = parse_apps([
             app("a", PY, "{shell}"),                                         # unbekannter Platzhalter
-            app("b", "google-chrome-stable", "--app=https://x"),                         # Browser ohne Profil
+            app("b", "google-chrome-stable", "--app=https://x"),                         # browser without a profile
             app("c", "google-chrome-stable", "--no-sandbox", "--user-data-dir={profile_dir}"),
             app("d", "google-chrome-stable", "--remote-debugging-port=9222", "--user-data-dir={profile_dir}"),
             app("e", PY, env={"LD_PRELOAD": "/x"}),
@@ -116,12 +116,12 @@ class TestKonfiguration(Base):
         tool.chmod(0o755)
         self.assertEqual(launcher._resolve_executable("tool"), tool.resolve())
 
-        tool.chmod(0o775)  # für Gruppe beschreibbar
+        tool.chmod(0o775)  # group-writable
         with self.assertRaises(LaunchRefused):
             launcher._resolve_executable("tool")
         tool.chmod(0o755)
 
-        self.tmp.chmod(0o775)  # auch ein beschreibbarer übergeordneter Pfad ist unsicher
+        self.tmp.chmod(0o775)  # a writable parent directory is also unsafe
         with self.assertRaises(LaunchRefused):
             launcher._resolve_executable("tool")
         self.tmp.chmod(0o700)
@@ -130,18 +130,18 @@ class TestKonfiguration(Base):
         outside.parent.mkdir()
         outside.write_text("#!/bin/sh\n")
         outside.chmod(0o755)
-        with self.assertRaises(LaunchRefused):  # absoluter Pfad außerhalb der vertrauenswürdigen Verzeichnisse
+        with self.assertRaises(LaunchRefused):  # absolute path outside trusted directories
             launcher._resolve_executable(str(outside))
         link = self.tmp / "bin" / "linked"
         link.symlink_to(outside)
-        with self.assertRaises(LaunchRefused):  # Symlink aus vertrauenswürdigem Ordner nach draußen
+        with self.assertRaises(LaunchRefused):  # symlink from a trusted directory to an external path
             launcher._resolve_executable("linked")
         with self.assertRaises(LaunchRefused):
             launcher._resolve_executable("./tool")
         with self.assertRaises(LaunchRefused):
             launcher._resolve_executable("bin/tool")
         with self.assertRaises(NotInstalled):
-            launcher._resolve_executable("gibt-es-nicht")
+            launcher._resolve_executable("does-not-exist")
 
     def test_liste_enthaelt_keine_befehle(self) -> None:
         launcher = self.build([app("x", PY, "-c", "SECRET")])
@@ -233,7 +233,7 @@ class TestAbstuerze(Base):
         got = {k: await self.exit_of(launcher, k) for k in ("crash", "quick", "quick0", "quick0b", "fine", "killed")}
         self.assertEqual((got["crash"]["reason"], got["crash"]["code"]), ("crashed", 3))
         self.assertEqual((got["quick"]["reason"], got["quick"]["code"]), ("start_failed", 7))
-        self.assertEqual(got["quick0"]["reason"], "start_failed")  # Exit 0 sofort = Übergabe an Fremdinstanz
+        self.assertEqual(got["quick0"]["reason"], "start_failed")  # immediate exit 0 = handoff to an external instance
         self.assertEqual(got["quick0b"]["reason"], "ok")
         self.assertEqual(got["fine"]["reason"], "ok")
         self.assertEqual((got["killed"]["reason"], got["killed"]["signal"]), ("crashed", "SIGKILL"))
@@ -251,7 +251,7 @@ class TestAbstuerze(Base):
         self.assertIn("boom-stderr", text)
         self.assertEqual(stat.S_IMODE((self.data / "logs" / "a.log").stat().st_mode), 0o600)
         self.assertEqual(stat.S_IMODE((self.data / "logs").stat().st_mode), 0o700)
-        self.assertTrue(any("Letzte Ausgabe" in line and "boom-stderr" in line for line in cm.output), cm.output)
+        self.assertTrue(any("Last output" in line and "boom-stderr" in line for line in cm.output), cm.output)
 
     async def test_log_rotation(self) -> None:
         logs = self.data / "logs"
@@ -285,7 +285,7 @@ class TestIsolation(Base):
         os.environ["GEHEIMER_TOKEN"] = "geheim"
         self.addCleanup(os.environ.pop, "LD_PRELOAD", None)
         self.addCleanup(os.environ.pop, "GEHEIMER_TOKEN", None)
-        # Keine geschweiften Klammern im Argument: {name} wäre ein (unbekannter) Platzhalter und wird abgelehnt.
+        # No braces in the argument: {name} would be an (unknown) placeholder and is rejected.
         code = "import os,time; print('\\n'.join(k + '=' + v for k, v in os.environ.items()), flush=True); time.sleep(60)"
         launcher = self.build([app("a", PY, "-c", code, env={"MEINE_VAR": "42"})])
         await launcher.launch("a")
@@ -320,14 +320,14 @@ class TestIsolation(Base):
         )
         launcher = self.build([app("a", PY, "-c", leader, "--user-data-dir={profile_dir}")])
         other = self.bystander("--user-data-dir=" + str(self.data / "profiles" / "anderes"))  # anderes Profil
-        plain = self.bystander()                                                              # gleiches Programm, kein Argument
+        plain = self.bystander()                                                              # same executable, no profile argument
         await launcher.launch("a")
         arg = "--user-data-dir=" + str(self.data / "profiles" / "a")
-        await self.until(lambda: len(pm_mod._find_pids_with_arg(arg)) >= 2)  # Anführer + entkommener Kindprozess
+        await self.until(lambda: len(pm_mod._find_pids_with_arg(arg)) >= 2)  # leader + escaped child process
         await launcher.stop()
         self.assertEqual(pm_mod._find_pids_with_arg(arg), [])
-        self.assertIsNone(other.poll(), "fremdes Profil darf nicht beendet werden")
-        self.assertIsNone(plain.poll(), "gleichnamiges Programm darf nicht beendet werden")
+        self.assertIsNone(other.poll(), "foreign profile must not be terminated")
+        self.assertIsNone(plain.poll(), "same-named executable must not be terminated")
 
     async def test_reste_frueherer_instanz_werden_vor_dem_start_beendet(self) -> None:
         arg = "--user-data-dir=" + str(self.data / "profiles" / "a")
@@ -346,7 +346,7 @@ class TestSperreUndUebernahme(Base):
         with self.assertRaises(BackendLocked):
             await b.startup()
         await a.shutdown()
-        await b.startup()  # nach Freigabe möglich
+        await b.startup()  # allowed after releasing the lock
 
     async def test_app_wird_nach_backend_absturz_uebernommen(self) -> None:
         launcher = self.build([app("a", PY, "-c", SLEEP, "--user-data-dir={profile_dir}"), app("b", PY, "-c", SLEEP)])
@@ -360,7 +360,7 @@ class TestSperreUndUebernahme(Base):
             "async def main():\n"
             "    l = AppLauncher(SettingsStore(Path(sys.argv[2])), ProcessManager(0.4, 1.5, Path(sys.argv[3])))\n"
             "    await l.startup(); st = await l.launch('a'); print(st['pid'], flush=True)\n"
-            "asyncio.run(main()); os._exit(0)  # 'Absturz': kein shutdown, App läuft weiter\n"
+            "asyncio.run(main()); os._exit(0)  # 'crash': no shutdown, app keeps running\n"
         )
         out = subprocess.run(
             [sys.executable, "-c", helper, str(BACKEND), str(self.tmp / "settings.json"), str(self.run_dir)],
@@ -373,7 +373,7 @@ class TestSperreUndUebernahme(Base):
         await launcher.startup()  # neues Backend
         st = launcher.status()
         self.assertEqual((st["state"], st["app_id"], st["pid"]), ("running", "a", pid))
-        with self.assertRaises(ProcessBusy):  # übernommene App blockiert weitere Starts
+        with self.assertRaises(ProcessBusy):  # adopted app blocks further launches
             await launcher.launch("b")
         st = await launcher.stop()
         self.assertEqual(st["state"], "idle")
@@ -392,7 +392,7 @@ class TestSperreUndUebernahme(Base):
         self.assertFalse((self.run_dir / "state.json").exists())
 
     async def test_pid_recycling_wird_erkannt(self) -> None:
-        """Gleiche PID, andere Startzeit: das Backend darf den fremden Prozess NICHT übernehmen."""
+        """Same PID, different start time: the backend must NOT adopt the foreign process."""
         victim = self.bystander()
         self.run_dir.mkdir(parents=True)
         (self.run_dir / "state.json").write_text(json.dumps({
@@ -402,7 +402,7 @@ class TestSperreUndUebernahme(Base):
         launcher = self.build([app("a", PY, "-c", SLEEP)])
         await launcher.startup()
         self.assertEqual(launcher.status()["state"], "idle")
-        self.assertIsNone(victim.poll(), "fremder Prozess darf nicht angetastet werden")
+        self.assertIsNone(victim.poll(), "foreign process must not be touched")
 
 
 if __name__ == "__main__":
