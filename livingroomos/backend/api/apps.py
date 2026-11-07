@@ -1,4 +1,4 @@
-"""Endpunkte zum Auflisten, Starten und Beenden von Anwendungen."""
+"""Endpoints for listing, starting, and stopping applications."""
 from __future__ import annotations
 
 from typing import Annotated
@@ -10,7 +10,7 @@ from services.process_manager import LaunchFailed, ProcessBusy
 
 router = APIRouter(prefix="/api/v1/apps", tags=["apps"])
 
-# Nur IDs aus der Konfiguration sind gültig; das Format wird zusätzlich geprüft.
+# Only IDs from the configuration are valid; their format is also validated.
 AppId = Annotated[str, Path(pattern=r"^[a-z0-9][a-z0-9_-]{0,31}$")]
 
 
@@ -32,14 +32,14 @@ async def stop_app(request: Request) -> dict:
 
 @router.post("/{app_id}/stop")
 async def stop_one_app(app_id: AppId, request: Request) -> dict:
-    """Beendet nur die genannte App. Läuft eine andere oder keine, passiert nichts (409)."""
+    """Stops only the specified app. If another app or no app is running, nothing happens (409)."""
     launcher = request.app.state.launcher
     if launcher.status()["app_id"] != app_id:
         raise HTTPException(
             409,
             detail={
                 "code": "not_running",
-                "message": f"{launcher.title(app_id)} läuft nicht.",
+                "message": f"{launcher.title(app_id)} is not running.",
                 "status": launcher.status(),
             },
         )
@@ -58,7 +58,7 @@ async def launch_app(app_id: AppId, request: Request) -> dict:
             422,
             detail={
                 "code": "not_installed",
-                "message": f"„{exc.executable}“ wurde nicht gefunden. Bitte installieren oder die passende Datei unter config/apps/ prüfen.",
+                "message": f"“{exc.executable}” was not found. Install it or check the corresponding file in config/apps/.",
             },
         )
     except ProcessBusy as exc:
@@ -66,7 +66,7 @@ async def launch_app(app_id: AppId, request: Request) -> dict:
             409,
             detail={
                 "code": "busy",
-                "message": f"Es läuft bereits {launcher.title(exc.app_id)}.",
+                "message": f"{launcher.title(exc.app_id)} is already running.",
                 "status": launcher.status(),
             },
         )
