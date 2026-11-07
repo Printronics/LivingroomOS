@@ -1,5 +1,5 @@
-# Zusätzlich für die Entwicklung: nur die API-Tests (backend/tests/test_api.py) brauchen httpx,
-# weil fastapi.testclient darauf aufbaut. Ohne httpx werden diese Tests übersprungen.
+# Development-only dependency: only the API tests (backend/tests/test_api.py) require httpx,
+# because fastapi.testclient depends on it. These tests are skipped if httpx is unavailable.
 # Debian 13: apt install python3-httpx
 -r requirements.txt
 httpx>=0.27,<1.0
