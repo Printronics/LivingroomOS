@@ -1,7 +1,7 @@
-"""Lädt und speichert config/settings.json.
+"""Lädt und speichert config/settings.json sowie einzelne App-CFG-Dateien.
 
-Nur der Abschnitt "ui" ist über die API schreibbar. "apps" und "server" ändert
-ausschließlich der Administrator per Dateibearbeitung.
+Nur der Abschnitt "ui" ist über die API schreibbar. "server" und die
+App-Konfigurationen ändert ausschließlich der Administrator per Dateibearbeitung.
 """
 from __future__ import annotations
 
@@ -12,16 +12,20 @@ import threading
 from pathlib import Path
 from typing import Any
 
+from .app_config_loader import load_app_configs
+
 
 class SettingsError(Exception):
     """Konfiguration fehlt, ist ungültig oder nicht schreibbar."""
 
 
 class SettingsStore:
-    def __init__(self, path: Path) -> None:
+    def __init__(self, path: Path, app_config_dir: Path | None = None) -> None:
         self.path = Path(path)
+        self.app_config_dir = Path(app_config_dir) if app_config_dir is not None else self.path.parent / "apps"
         self._lock = threading.Lock()
         self._data: dict[str, Any] = {}
+        self._app_config_problems: list[str] = []
         self.load()
 
     def load(self) -> None:
@@ -52,8 +56,16 @@ class SettingsStore:
 
     @property
     def apps(self) -> list[Any]:
-        section = self._data.get("apps")
-        return section if isinstance(section, list) else []
+        """CFG-Web-Apps plus optionale Legacy-/Debug-Einträge aus settings.json."""
+        configured, self._app_config_problems = load_app_configs(self.app_config_dir)
+        legacy = self._data.get("apps")
+        if not isinstance(legacy, list):
+            legacy = []
+        return [*configured, *legacy]
+
+    @property
+    def app_config_problems(self) -> list[str]:
+        return list(self._app_config_problems)
 
     def update_ui(self, values: dict[str, Any]) -> dict[str, Any]:
         """Aktualisiert den Abschnitt "ui" und schreibt die Datei atomar."""
