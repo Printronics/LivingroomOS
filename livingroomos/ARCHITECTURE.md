@@ -4,7 +4,7 @@
 
 This document describes what is **actually implemented**. Where the implementation differs from the original architectural design, the reasons are documented in Section 11.
 
-The security concept is documented in [docs/SICHERHEIT.md](docs/SICHERHEIT.md), and the system packages are listed in [docs/SYSTEMABHAENGIGKEITEN.md](docs/SYSTEMABHAENGIGKEITEN.md).
+The security concept is documented in [docs/SECURITY.md](docs/SECURITY.md), and the system packages are listed in [docs/SYSTEM_DEPENDENCIES.md](docs/SYSTEM_DEPENDENCIES.md).
 
 ## 1. Goals and Design Principles
 
@@ -87,7 +87,7 @@ Each task has exactly one designated location. Dependencies point downward only:
 - The loader generates the Chrome argument list itself, including the per-app `{profile_dir}` placeholder. CFG files cannot provide arbitrary shell commands or arbitrary executables. The existing `AppLauncher.parse_apps` performs the launcher's additional command and security validation.
 - The frontend remains API-driven: `GET /api/v1/apps` supplies the app metadata used to render tiles. Adding an app does not require a frontend code change.
 
-See [App Configuration](docs/APP_KONFIGURATION.md) for the exact file format.
+See [App Configuration](docs/APP_CONFIGURATION.md) for the exact file format.
 
 ### 3.3 Frontend (`frontend/`)
 
@@ -175,7 +175,7 @@ The crash dialog appears for `crashed` and `start_failed`. Whenever an applicati
 
 **Process identity.** A process is identified using `/proc/<pid>/stat` (start time) and `pidfd_open`. PID reuse therefore cannot cause an unrelated process to be terminated.
 
-**Backend crash.** `state.json` (0600, stored in RAM under `$XDG_RUNTIME_DIR`) holds the PID and start time of the running application. A new backend can adopt it if the information is still valid. A lock file (`flock`) prevents two backend instances from running simultaneously. However, with the unit's default `KillMode=control-group`, the application exits together with the backend. Adoption is only relevant if the administrator selects `KillMode=process`(see `docs/SICHERHEIT.md`).
+**Backend crash.** `state.json` (0600, stored in RAM under `$XDG_RUNTIME_DIR`) holds the PID and start time of the running application. A new backend can adopt it if the information is still valid. A lock file (`flock`) prevents two backend instances from running simultaneously. However, with the unit's default `KillMode=control-group`, the application exits together with the backend. Adoption is only relevant if the administrator selects `KillMode=process`(see `docs/SECURITY.md`).
 
 ## 6. Boot and Startup Sequence
 
@@ -195,7 +195,7 @@ The backend listens only on loopback and does not use authentication, because an
 
 The core measures are: predefined applications only, no shell, validated paths and permissions, filtered environment, separate browser profiles, prohibited browser switches, and targeted process termination.
 
-For the complete security concept, see `docs/SICHERHEIT.md`.
+For the complete security concept, see `docs/SECURITY.md`.
 
 ## 8. Target Architecture
 
