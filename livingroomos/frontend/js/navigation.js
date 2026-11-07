@@ -5,11 +5,11 @@
 
    Markup
      data-focusable          Element can receive focus (button, tile, row, etc.)
-     data-key="id"           stabile Kennung; der Fokus findet das Element nach einem
-                             Neuaufbau der Liste wieder
-     data-nav-default        bevorzugtes Startelement einer Ansicht
+     data-key="id"           stable identifier; focus can find the element again after a
+                             list rebuild
+     data-nav-default        preferred initial focus target for a view
      data-nav-up|down|left|right="id | #selektor | none"
-                             feste Zielvorgabe statt Geometrie ("none" sperrt die Richtung)
+                             fixed target instead of geometry ("none" disables movement in that direction)
      data-repeatable         Enter may activate this element repeatedly in quick succession
      data-busy               Element is busy; Enter is ignored
 
@@ -18,7 +18,7 @@
    Handling rapid and repeated key presses
    - Movement is calculated synchronously; scrolling is immediate (not "smooth") so that the
      next key press always uses the current positions.
-   - Verschwindet das fokussierte Element (Neuaufbau, Fensterwechsel, Mausklick ins Leere),
+   - If the focused element disappears (list rebuild, window switch, click on empty space),
      navigation restores focus itself: focus is never "lost".
    - When a new area opens (for example, a dialog), Enter is briefly ignored so that
      a double press does not immediately activate the first dialog button. When the
@@ -74,7 +74,7 @@ export class Navigator {
    * @param {object} [options]
    * @param {string} [options.focusable]        Selector for focusable elements
    * @param {number} [options.activateCooldown=400]  ms during which the same element cannot be activated again
-   * @param {number} [options.settleMs=350]     ms Enter-Sperre nach einem Scope-Wechsel
+   * @param {number} [options.settleMs=350]     ms Enter lock after a scope change
    * @param {(el: HTMLElement) => void} [options.onFocus]
    * @param {(dir: string, el: HTMLElement) => void} [options.onEdge]  Rand erreicht
    */
@@ -149,7 +149,7 @@ export class Navigator {
   /** Arrow key: moves focus; focus stays in place at an edge. Returns the focused element. */
   move(direction) {
     const from = this.current();
-    if (!from) return this.restoreFocus(); // Fokus war verloren: erst wiederherstellen, dann bewegen
+    if (!from) return this.restoreFocus(); // Focus was lost: restore it before moving
 
     const forced = this.#forcedTarget(from, direction);
     if (forced === "blocked") return this.#edge(from, direction);
@@ -166,7 +166,7 @@ export class Navigator {
     return best ? this.focus(best) : this.#edge(from, direction);
   }
 
-  /** Tab/Shift+Tab: der Reihe nach, ohne Umbruch. */
+  /** Tab/Shift+Tab: move sequentially without wrapping. */
   step(delta) {
     const from = this.current();
     if (!from) return this.restoreFocus();
