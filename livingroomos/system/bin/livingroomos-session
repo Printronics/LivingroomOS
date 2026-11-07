@@ -2,7 +2,7 @@
 # livingroomos-session – starts the labwc compositor and restarts it after crashes.
 # greetd runs initial_session only once per boot, so the restart loop is implemented here.
 # After MAX_CRASHES crashes within WINDOW_S seconds, the script exits; greetd then shows the
-# Textanmeldung (default_session) statt eines endlosen Neustarts.
+# text login (default_session) instead of an endless restart loop.
 set -u
 
 LABWC_CONFIG_DIR=/opt/livingroomos/system/labwc
