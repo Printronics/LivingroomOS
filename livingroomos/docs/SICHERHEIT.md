@@ -2,6 +2,8 @@
 
 Stand: 2026-11-07 · Geltungsbereich: `backend/services/app_config_loader.py`, `backend/services/settings_store.py`, `backend/services/app_launcher.py`, `backend/services/process_manager.py`
 
+Die Benutzeranleitung für CFG-Dateien steht in [docs/APP_KONFIGURATION.md](APP_KONFIGURATION.md). Dieses Dokument beschreibt die Sicherheitsgrenzen und Berechtigungen, nicht die vollständige Bedienung.
+
 ## 1. Schutzziele
 
 | Nr. | Ziel |
