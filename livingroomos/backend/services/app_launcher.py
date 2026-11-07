@@ -3,7 +3,7 @@
 Security model: docs/SECURITY.md. The frontend sends only an app ID. The executable, arguments, and
 environment come from administrator-managed configuration files and are validated here several times:
 when loading (format, flags, placeholders) and when launching (path, owner, permissions, profile directory).
-Es gibt keine Shell.
+No shell is used.
 """
 from __future__ import annotations
 
@@ -234,7 +234,7 @@ class AppLauncher:
             raise AppNotFound(app_id)
         current = self._manager.status()
         if current["state"] in ("starting", "running") and current["app_id"] == app_id:
-            return current  # idempotent: dieselbe App läuft bereits
+            return current  # idempotent: the same app is already running
         try:
             spec = self._prepare(app)
         except LaunchRefused as exc:
@@ -337,7 +337,7 @@ class AppLauncher:
         while True:
             parent_stat = parent.stat()
             if parent_stat.st_uid not in (0, uid):
-                raise LaunchRefused(f"Das Verzeichnis {parent} is owned by a different user.")
+                raise LaunchRefused(f"Directory {parent} is owned by a different user.")
             if parent_stat.st_mode & stat.S_IWGRP:
                 raise LaunchRefused(f"Directory {parent} is group-writable.")
             if parent_stat.st_mode & stat.S_IWOTH and not parent_stat.st_mode & stat.S_ISVTX:
