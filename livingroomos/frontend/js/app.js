@@ -443,7 +443,7 @@ function showAbout() {
   });
 }
 
-/* ---------------------------------------------------------------- Anwendungen */
+/* ---------------------------------------------------------------- Applications */
 
 async function launchApp(app) {
   if (state.launching) return;
