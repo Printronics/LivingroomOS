@@ -5,7 +5,7 @@ Communicates with the LivingroomOS backend over HTTP only on 127.0.0.1 (port fro
 LIVINGROOMOS_PORT, default 8750). It does not start programs and uses only the standard library.
 
   livingroomosctl home          stops the running app; the launcher becomes visible again
-  livingroomosctl status        gibt den Status des Backends als JSON aus
+  livingroomosctl status        prints the backend status as JSON
   livingroomosctl wait [SEK]    waits (60 s by default) until the backend is ready
 
 Exit codes: 0 success, 1 backend unreachable or error, 2 incorrect usage.
