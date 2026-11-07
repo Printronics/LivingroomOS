@@ -10,6 +10,15 @@ The version number is defined in exactly one place: `backend/version.py`.
 
 ## [0.6.0] – 2026-11-06
 
+### Added
+- Added individual INI-style `.cfg` files for web applications under `backend/config/apps/`; new web apps no longer require editing Python, JavaScript, or the central settings file.
+- Added validation for app IDs, matching filenames, HTTP(S) URLs, browser executables, colors, and categories; invalid app files are skipped and reported through system status.
+- Added documentation and automated tests for file-based app configuration.
+
+### Changed
+- Moved the example streaming apps from `settings.json` into separate Netflix, Disney+, YouTube, and Jellyfin configuration files.
+- Kept `settings.json` for server/UI settings and optional legacy/debug application entries.
+
 ### Changed
 
 - Renamed the entire project to LivingroomOS: directories, files, services, configuration, environment variables, and API headers.
