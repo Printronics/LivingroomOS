@@ -1,33 +1,33 @@
-/* LivingroomOS – Fokusnavigation für Fernseher.
+/* LivingroomOS – focus navigation for TVs.
 
-   Eigenständig: kennt weder Fernbedienung noch Anwendung. Verwaltet, welches Element den
-   Fokus hat, und bewegt ihn in Pfeilrichtung.
+   Standalone: knows nothing about the remote control or the app. Manages which element has
+   focus and moves it in the direction of the arrow key.
 
    Markup
-     data-focusable          Element ist anwählbar (Schaltfläche, Kachel, Zeile …)
+     data-focusable          Element can receive focus (button, tile, row, etc.)
      data-key="id"           stabile Kennung; der Fokus findet das Element nach einem
                              Neuaufbau der Liste wieder
      data-nav-default        bevorzugtes Startelement einer Ansicht
      data-nav-up|down|left|right="id | #selektor | none"
                              feste Zielvorgabe statt Geometrie ("none" sperrt die Richtung)
-     data-repeatable         Enter darf dieses Element schnell hintereinander auslösen
-     data-busy               Element ist beschäftigt, Enter wird ignoriert
+     data-repeatable         Enter may activate this element repeatedly in quick succession
+     data-busy               Element is busy; Enter is ignored
 
-   Ein "Scope" (Ansicht oder Dialog) begrenzt, welche Elemente erreichbar sind.
+   A "scope" (view or dialog) limits which elements can be reached.
 
-   Robustheit gegen schnelle und wiederholte Tasten
-   - Bewegung wird synchron berechnet; Scrollen springt sofort (kein "smooth"), damit die
-     nächste Taste immer auf aktuellen Positionen aufbaut.
+   Handling rapid and repeated key presses
+   - Movement is calculated synchronously; scrolling is immediate (not "smooth") so that the
+     next key press always uses the current positions.
    - Verschwindet das fokussierte Element (Neuaufbau, Fensterwechsel, Mausklick ins Leere),
-     holt sich die Navigation den Fokus selbst zurück: er ist nie "weg".
-   - Öffnet sich ein neuer Bereich (z. B. ein Dialog), ignoriert Enter kurz, damit ein
-     Doppelklick auf die Taste nicht sofort die erste Dialogschaltfläche bestätigt. Kehrt der
-     Nutzer in einen Bereich zurück, in dem er schon gewählt hatte, gilt die Sperre nicht.
-   - Dasselbe Element löst nicht zweimal innerhalb von activateCooldown aus. */
+     navigation restores focus itself: focus is never "lost".
+   - When a new area opens (for example, a dialog), Enter is briefly ignored so that
+     a double press does not immediately activate the first dialog button. When the
+     user returns to an area where they already made a selection, the lock does not apply.
+   - The same element cannot be activated twice within activateCooldown. */
 
 const DEFAULT_FOCUSABLE = "[data-focusable]:not([disabled]):not([aria-disabled='true'])";
 const NATIVELY_FOCUSABLE = "a[href], button, input, select, textarea, [tabindex]";
-const OPPOSITE_AXIS_WEIGHT = 4;   // Abweichung zur Seite zählt vierfach, wenn sich die Elemente nicht überlappen
+const OPPOSITE_AXIS_WEIGHT = 4;   // Sideways deviation counts four times as much when the elements do not overlap
 const EDGE_FEEDBACK_MS = 260;
 
 function isShown(el) {
@@ -36,7 +36,7 @@ function isShown(el) {
   return el.getClientRects().length > 0;
 }
 
-/** Bewertung eines Kandidaten in Richtung `dir`; kleiner ist besser, Infinity = nicht erreichbar. */
+/** Scores a candidate in direction `dir`; lower is better, Infinity means unreachable. */
 function score(origin, candidate, dir) {
   const horizontal = dir === "left" || dir === "right";
   const sign = dir === "right" || dir === "down" ? 1 : -1;
@@ -44,7 +44,7 @@ function score(origin, candidate, dir) {
   const oMain = horizontal ? origin.left + origin.width / 2 : origin.top + origin.height / 2;
   const cMain = horizontal ? candidate.left + candidate.width / 2 : candidate.top + candidate.height / 2;
   const main = (cMain - oMain) * sign;
-  if (main <= 2) return Infinity; // nicht in Richtung (oder auf gleicher Höhe)
+  if (main <= 2) return Infinity; // not in the requested direction (or at the same position)
 
   const oCross = horizontal ? origin.top + origin.height / 2 : origin.left + origin.width / 2;
   const cCross = horizontal ? candidate.top + candidate.height / 2 : candidate.left + candidate.width / 2;
@@ -61,7 +61,7 @@ function score(origin, candidate, dir) {
 
 export class Navigator {
   #scope = null;
-  #memory = new WeakMap();      // Scope → zuletzt fokussiertes Element (Schlüssel und Position)
+  #memory = new WeakMap();      // Scope -> last focused element (key and position)
   #opts;
   #settleUntil = 0;
   #last = { el: null, at: 0 };
@@ -72,8 +72,8 @@ export class Navigator {
 
   /**
    * @param {object} [options]
-   * @param {string} [options.focusable]        Selektor anwählbarer Elemente
-   * @param {number} [options.activateCooldown=400]  ms, in denen dasselbe Element nicht erneut auslöst
+   * @param {string} [options.focusable]        Selector for focusable elements
+   * @param {number} [options.activateCooldown=400]  ms during which the same element cannot be activated again
    * @param {number} [options.settleMs=350]     ms Enter-Sperre nach einem Scope-Wechsel
    * @param {(el: HTMLElement) => void} [options.onFocus]
    * @param {(dir: string, el: HTMLElement) => void} [options.onEdge]  Rand erreicht
@@ -81,11 +81,11 @@ export class Navigator {
   constructor(options = {}) {
     this.#opts = { focusable: DEFAULT_FOCUSABLE, activateCooldown: 400, settleMs: 350, onFocus: null, onEdge: null, ...options };
 
-    // Auch Mausklicks oder programmatischer Fokus werden gemerkt.
+    // Mouse clicks and programmatic focus are remembered too.
     document.addEventListener("focusin", (event) => {
       if (this.#scope?.contains(event.target)) this.#remember(event.target);
     });
-    // Fokus verloren (Klick ins Leere, Element entfernt, Fenster zurück von einer externen App).
+    // Focus was lost (click on empty space, element removed, window returned from an external app).
     document.addEventListener("focusout", (event) => { if (!event.relatedTarget) this.#queueEnsure(); });
     window.addEventListener("focus", () => this.#queueEnsure());
     document.addEventListener("visibilitychange", () => { if (!document.hidden) this.#queueEnsure(); });
@@ -94,9 +94,9 @@ export class Navigator {
 
   get scope() { return this.#scope; }
 
-  /** Setzt den aktiven Bereich und fokussiert das zuletzt gewählte Element. */
+  /** Sets the active area and focuses the last selected element. */
   setScope(root, { reset = false } = {}) {
-    // "Frisch": der Fokus landet auf einer Vorgabe, nicht auf einer früheren Wahl des Nutzers.
+    // "Fresh": focus moves to a default element, not to the user's previous selection.
     const fresh = reset || (root !== null && !this.#memory.has(root));
     this.#scope = root;
     this.#observer.disconnect();
@@ -108,7 +108,7 @@ export class Navigator {
     return this.restoreFocus();
   }
 
-  /** Alle derzeit sichtbaren, anwählbaren Elemente des Scopes in DOM-Reihenfolge. */
+  /** All currently visible, focusable elements in the scope, in DOM order. */
   items() {
     if (!this.#scope) return [];
     return [...this.#scope.querySelectorAll(this.#opts.focusable)].filter((el) => {
@@ -139,14 +139,14 @@ export class Navigator {
   focus(el) {
     if (!el.matches(NATIVELY_FOCUSABLE)) el.tabIndex = -1; // z. B. <div data-focusable>
     el.focus({ preventScroll: true });
-    // behavior "instant": kein Animieren, sonst rechnet die nächste Taste mit alten Positionen.
+    // behavior "instant": no animation, so the next key press does not use stale positions.
     el.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "instant" });
     this.#remember(el);
     this.#opts.onFocus?.(el);
     return el;
   }
 
-  /** Pfeiltaste: bewegt den Fokus; am Rand bleibt er stehen. Gibt das fokussierte Element zurück. */
+  /** Arrow key: moves focus; focus stays in place at an edge. Returns the focused element. */
   move(direction) {
     const from = this.current();
     if (!from) return this.restoreFocus(); // Fokus war verloren: erst wiederherstellen, dann bewegen
@@ -175,7 +175,7 @@ export class Navigator {
     return next ? this.focus(next) : this.#edge(from, delta > 0 ? "down" : "up");
   }
 
-  /** Enter: löst die Aktion des fokussierten Elements aus. Gibt zurück, ob etwas ausgelöst wurde. */
+  /** Enter: activates the focused element. Returns whether an action was triggered. */
   activate() {
     const el = this.current();
     if (!el) { this.restoreFocus(); return false; }
@@ -199,12 +199,12 @@ export class Navigator {
       target = spec.startsWith("#")
         ? document.querySelector(spec)
         : this.#scope.querySelector(`[data-key="${CSS.escape(spec)}"]`);
-    } catch { /* ungültiger Selektor: Geometrie verwenden */ }
+    } catch { /* invalid selector: use geometry */ }
     return target && this.items().includes(target) ? target : null;
   }
 
   #edge(el, dir) {
-    // Kurzes Wackeln zeigt: hier geht es nicht weiter. Gehaltene Taste startet es nicht neu.
+    // A brief shake indicates that movement cannot continue. Holding the key does not restart it.
     if (this.#edgeEl && this.#edgeEl !== el) delete this.#edgeEl.dataset.edge;
     if (el.dataset.edge !== dir) el.dataset.edge = dir;
     this.#edgeEl = el;
@@ -219,7 +219,7 @@ export class Navigator {
     this.#memory.set(this.#scope, { key: el.dataset.key ?? null, index: this.items().indexOf(el) });
   }
 
-  /** Sorgt (gebündelt pro Frame) dafür, dass immer ein Element im Scope den Fokus hat. */
+  /** Ensures (once per frame) that an element in the scope always has focus. */
   #queueEnsure() {
     if (this.#ensureQueued) return;
     this.#ensureQueued = true;
