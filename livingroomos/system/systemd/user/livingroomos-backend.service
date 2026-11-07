@@ -1,5 +1,5 @@
 [Unit]
-Description=LivingroomOS Backend (FastAPI auf 127.0.0.1:8750)
+Description=LivingroomOS Backend (FastAPI on 127.0.0.1:8750)
 Documentation=file:///opt/livingroomos/ARCHITECTURE.md
 
 [Service]
