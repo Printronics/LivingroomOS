@@ -22,7 +22,7 @@
     {
       "id": "demo",
       "title": "Demo-App",
-      "subtitle": "Testprozess, läuft 10 Minuten",
+      "subtitle": "Test process, runs for 10 minutes",
       "icon": "D",
       "color": "#2f9e6f",
       "command": [
@@ -34,8 +34,8 @@
     },
     {
       "id": "demo-crash",
-      "title": "Absturz-Test",
-      "subtitle": "Beendet sich nach 3 s mit Fehler",
+      "title": "Crash Test",
+      "subtitle": "Exits after 3 seconds with an error",
       "icon": "!",
       "color": "#c98a1b",
       "command": [
