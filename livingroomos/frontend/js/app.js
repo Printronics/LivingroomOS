@@ -26,11 +26,11 @@ const state = {
   apps: [],
   status: IDLE_STATUS,
   ui: { clock_24h: true, show_clock: true, tile_size: "normal", show_app_subtitles: true, reduce_motion: false, confirm_power: true },
-  online: null,        // null = unbekannt, sonst true/false
+  online: null,        // null = unknown, otherwise true/false
   view: "home",        // "home" | "settings"
   settingsTab: "general",
-  dialog: null,        // { key, onBack } solange ein Dialog offen ist
-  seenExit: 0,         // höchste bereits gezeigte last_exit.seq
+  dialog: null,        // { key, onBack } while a dialog is open
+  seenExit: 0,         // highest last_exit.seq already displayed
   firstStatus: true,
   launching: false,
 };
@@ -43,7 +43,7 @@ let saveQueue = Promise.resolve();
 
 /* ------------------------------------------------------------------ Helfer */
 
-/** Baut Elemente ausschließlich über textContent (kein innerHTML → kein XSS). */
+/** Builds elements using textContent only (no innerHTML -> no XSS). */
 function h(tag, { class: cls, text, attrs = {}, on = {} } = {}, ...children) {
   const node = document.createElement(tag);
   if (cls) node.className = cls;
@@ -80,7 +80,7 @@ function gearIcon() {
   return svg;
 }
 
-/* ------------------------------------------------------------------- Kacheln */
+/* ------------------------------------------------------------------- Tiles */
 
 function tileFor(app) {
   const tile = h(
@@ -142,7 +142,7 @@ function renderSettings() {
 
   // Einstellungs-Tabs
   for (const [key, label] of [
-    ["general", "Allgemein"],
+    ["general", "General"],
     ["system", "System"],
     ["debug", "Debug"]
   ]) {
@@ -169,7 +169,7 @@ function renderSettings() {
     )));
   }
 
-  // Allgemeine und System-Settings
+  // Generale und System-Settings
   if (state.settingsTab === "general" || state.settingsTab === "system") {
     for (const setting of SETTINGS.filter(
       (item) => item.tab === state.settingsTab
@@ -412,7 +412,7 @@ function showAbout() {
   showDialog({
     key: "about-livingroomos",
     title: "About LivingroomOS",
-    text: "LivingroomOS ist freie Software unter der GNU Affero General Public License Version 3 (AGPL-3.0). The full license text and source code are available through the links below.",
+    text: "LivingroomOS is free software licensed under the GNU Affero General Public License version 3 (AGPL-3.0). The full license text and source code are available through the links below.",
     actions: [
       {
         label: "AGPL-3.0 Lizenztext",
@@ -425,7 +425,7 @@ function showAbout() {
         }
       },
       {
-        label: "LivingroomOS Quellcode",
+        label: "LivingroomOS source code",
         run: () => {
           window.open(
             "https://github.com/Printronics/LivingroomOS",
@@ -509,18 +509,18 @@ function onStatusChange(next) {
   const key = `${next.state}:${next.app_id}`;
   switch (next.state) {
     case "starting":
-      return showDialog({ key, spinner: true, title: `${name} wird gestartet …`, text: "Please wait.", actions: [{ label: "Cancel", run: stopApp }], onBack: stopApp });
+      return showDialog({ key, spinner: true, title: `${name} is starting …`, text: "Please wait.", actions: [{ label: "Cancel", run: stopApp }], onBack: stopApp });
     case "running":
       return showDialog({
         key,
         tone: "ok",
-        title: `${name} läuft`,
-        text: "The application ist in einem eigenen Fenster geöffnet. Nach dem Beenden erscheint wieder diese Oberfläche.",
+        title: `${name} is running`,
+        text: "The application is open in a separate window. This interface will reappear when it closes.",
         actions: [{ label: "Stop app", run: stopApp }, { label: "Hide", run: closeDialog }],
         onBack: closeDialog,
       });
     case "stopping":
-      return showDialog({ key, spinner: true, title: `${name} wird beendet …` });
+      return showDialog({ key, spinner: true, title: `${name} is stopping …` });
     default:
       if (state.dialog && /^(starting|running|stopping):/.test(state.dialog.key)) closeDialog();
   }
@@ -537,7 +537,7 @@ function onExit(exit) {
       key: `exit:${exit.seq}`,
       tone: "error",
       title: exit.reason === "crashed" ? `${name} exited unexpectedly` : `${name} could not be started`,
-      text: `${detail} nach ${Math.round(exit.runtime_s)} s.`,
+      text: `${detail} after ${Math.round(exit.runtime_s)} s.`,
       actions,
       onBack: closeDialog,
     });
@@ -546,13 +546,13 @@ function onExit(exit) {
   }
 }
 
-/* ---------------------------------------------------------- Verbindung zum Backend */
+/* ---------------------------------------------------------- Backend connection */
 
 async function loadAll() {
   const [apps, settings] = await Promise.all([api.apps(), api.settings()]);
   state.apps = apps.apps;
   state.ui = settings.ui;
-  state.status = IDLE_STATUS; // erzwingt den Neuaufbau eines evtl. verdeckten Dialogs
+  state.status = IDLE_STATUS; // forces a rebuild of any dialog that may be hidden
   renderTiles();
   renderSettings();
   applyUi();
