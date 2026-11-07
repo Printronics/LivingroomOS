@@ -120,7 +120,7 @@ app.include_router(settings_api.router)
 if FRONTEND_DIR.is_dir():
     app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
 else:
-    log.warning("Frontend directory is missing: %s (API only)")
+    log.warning("Frontend directory is missing: %s (API only)", FRONTEND_DIR)
 
 
 if __name__ == "__main__":
