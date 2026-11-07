@@ -67,12 +67,9 @@ fi
 sudo install -d -o root -g root -m 755 /opt/livingroomos
 sudo cp -a "$PROJECT/." /opt/livingroomos/
 sudo chown -R root:root /opt/livingroomos
-sudo find /opt/livingroomos -type d -exec chmod 755 {} \\
-;
-sudo find /opt/livingroomos -type f -exec chmod 644 {} \\
-;
-sudo find /opt/livingroomos -type f -name '*.sh' -exec chmod 755 {} \\
-;
+sudo find /opt/livingroomos -type d -exec chmod 755 {} \\;
+sudo find /opt/livingroomos -type f -exec chmod 644 {} \\;
+sudo find /opt/livingroomos -type f -name '*.sh' -exec chmod 755 {} \\;
 sudo chmod 755 \
     /opt/livingroomos/system/bin/livingroomos-session \
     /opt/livingroomos/system/bin/livingroomosctl
@@ -222,6 +219,7 @@ if [ -f /etc/greetd/config.toml.before-livingroomos ]; then
     sudo cp /etc/greetd/config.toml.before-livingroomos /etc/greetd/config.toml
 fi
 sudo systemctl daemon-reload
+sudo systemctl enable --now getty@tty1.service
 ```
 
 The runtime settings, browser profiles and logs are stored in `/var/lib/livingroomos`. Remove that directory and the `livingroomos` account only if you no longer need their data:
