@@ -1,4 +1,4 @@
-"""Tests für system/bin/livingroomosctl gegen einen kleinen Testserver (nur Standardbibliothek)."""
+"""Tests for system/bin/livingroomosctl against a small test server (standard library only)."""
 from __future__ import annotations
 
 import contextlib
@@ -96,15 +96,15 @@ class CtlTests(unittest.TestCase):
         FakeBackend.health_ok = False
         code, _, err = self.run_ctl("wait", "1")
         self.assertEqual(code, 1)
-        self.assertIn("nicht rechtzeitig", err)
+        self.assertIn("did not become ready in time", err)
 
     def test_unreachable_backend_is_exit_1_with_message(self) -> None:
         self.server.shutdown()
         self.server.server_close()
         code, _, err = self.run_ctl("status")
         self.assertEqual(code, 1)
-        self.assertIn("nicht erreichbar", err)
-        self.server = HTTPServer(("127.0.0.1", 0), FakeBackend)  # tearDown braucht einen gültigen Server
+        self.assertIn("not reachable", err)
+        self.server = HTTPServer(("127.0.0.1", 0), FakeBackend)  # tearDown requires a valid server
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
 
