@@ -1,7 +1,7 @@
 """Übersetzt App-IDs in geprüfte Startbefehle.
 
 Konzept: docs/SICHERHEIT.md. Das Frontend sendet nur eine App-ID. Programm, Argumente und
-Umgebung stammen ausschließlich aus config/settings.json und werden hier mehrfach geprüft:
+Umgebung stammen aus den administrativen Konfigurationsdateien und werden hier mehrfach geprüft:
 beim Laden (Form, Schalter, Platzhalter), beim Start (Pfad, Besitzer, Rechte, Profilordner).
 Es gibt keine Shell.
 """
@@ -187,7 +187,7 @@ class AppLauncher:
 
     def reload(self) -> None:
         self._apps, extra = parse_apps(self._store.apps)
-        self.problems = [*extra, *self._return_problems]
+        self.problems = [*self._store.app_config_problems, *extra, *self._return_problems]
 
     async def startup(self) -> None:
         await self._manager.startup()
