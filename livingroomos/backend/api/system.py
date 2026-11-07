@@ -1,4 +1,4 @@
-"""Gesundheitsstatus und eng begrenzte lokale Power-Aktionen."""
+"""Health status and narrowly scoped local power actions."""
 from __future__ import annotations
 
 import platform
@@ -32,7 +32,7 @@ async def system_status(request: Request) -> dict:
 
 @router.post("/system/power/{action}", status_code=202)
 async def system_power(action: str) -> dict:
-    """Erlaubt ausschließlich Neustart oder Herunterfahren, niemals freie Befehle."""
+    """Allows only restart or shutdown; arbitrary commands are never accepted."""
     commands = {
         "restart": ["systemctl", "reboot"],
         "shutdown": ["systemctl", "poweroff"],
@@ -41,7 +41,7 @@ async def system_power(action: str) -> dict:
     if command is None:
         raise HTTPException(
             status_code=404,
-            detail={"code": "unknown_power_action", "message": "Aktion nicht unterstützt."},
+            detail={"code": "unknown_power_action", "message": "Action not supported."},
         )
     try:
         subprocess.Popen(
@@ -57,7 +57,7 @@ async def system_power(action: str) -> dict:
             status_code=503,
             detail={
                 "code": "power_unavailable",
-                "message": f"Systemaktion konnte nicht gestartet werden: {exc.strerror}",
+                "message": f"Could not start system action: {exc.strerror}",
             },
         ) from exc
     return {"status": "accepted", "action": action}
