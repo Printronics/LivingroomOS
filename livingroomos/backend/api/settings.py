@@ -1,4 +1,4 @@
-"""Benutzereinstellungen der Oberfläche (nur der Abschnitt "ui")."""
+"""User-interface settings (the "ui" section only)."""
 from __future__ import annotations
 
 from typing import Any, Literal
@@ -20,7 +20,7 @@ UI_DEFAULTS: dict[str, Any] = {
 
 
 class UIPatch(BaseModel):
-    model_config = ConfigDict(extra="forbid")  # unbekannte Schlüssel → 422
+    model_config = ConfigDict(extra="forbid")  # unknown keys -> 422
     clock_24h: bool | None = None
     show_clock: bool | None = None
     tile_size: Literal["normal", "large"] | None = None
