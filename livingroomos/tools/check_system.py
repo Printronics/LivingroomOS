@@ -118,7 +118,7 @@ def check(config_path: Path) -> None:
         for app in launcher.list_apps():
             record(app["available"], f"App “{app['title']}” ready to launch", "" if app["available"] else "Executable is not installed", required=False)
     except SettingsError as exc:
-        record(False, "Konfiguration lesbar", str(exc))
+        record(False, "Configuration is readable", str(exc))
     except ImportError as exc:
         record(False, "Backend importierbar", str(exc))
 
