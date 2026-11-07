@@ -1,14 +1,14 @@
-"""Sicheres Prozessmanagement für genau ein Vordergrundprogramm.
+"""Secure process management for exactly one foreground application.
 
-Konzept: docs/SICHERHEIT.md. Kernpunkte:
+Security model: docs/SECURITY.md. Key points:
 
-* subprocess ohne Shell. Die fertig geprüfte Befehlszeile kommt als LaunchSpec vom AppLauncher.
-* Jede App läuft in eigener Sitzung/Prozessgruppe; Signale gehen nur an diese Gruppe.
-* Nachzügler (z. B. Browser-Renderer, die die Gruppe verlassen) werden über einen EXAKTEN
-  argv-Eintrag gefunden (--user-data-dir=<Profil dieser App>), nie über Programmnamen.
-  Fremde Browserfenster bleiben dadurch unberührt.
-* Identität wird über die /proc-Startzeit und pidfd geprüft (kein PID-Recycling).
-* Sperrdatei verhindert zwei Backends; Zustandsdatei erlaubt die Übernahme nach einem Absturz.
+* Subprocesses never use a shell. The fully validated command line is supplied by AppLauncher as a LaunchSpec.
+* Each app runs in its own session/process group; signals are sent only to that group.
+* Stragglers (for example, browser renderers that leave the process group) are found using an EXACT
+  argv entry (--user-data-dir=<this app's profile>), never by executable name.
+  This leaves unrelated browser windows untouched.
+* Process identity is verified using the /proc start time and pidfd (preventing PID reuse).
+* A lock file prevents multiple backend instances; a state file allows recovery after a crash.
 
 Nur Standardbibliothek. Linux-spezifisch (/proc, pidfd, Kernel >= 5.3).
 """
@@ -31,7 +31,7 @@ from typing import Any, Awaitable, Callable, Mapping
 
 log = logging.getLogger("livingroomos.process")
 
-MAX_LOG_BYTES = 1_048_576  # Log einer App wird ab 1 MiB beim nächsten Start rotiert
+MAX_LOG_BYTES = 1_048_576  # Rotate an app log at the next launch when it reaches 1 MiB
 LOG_TAIL_LINES = 20
 
 
@@ -43,30 +43,30 @@ class State(str, Enum):
 
 
 class ProcessBusy(Exception):
-    """Es läuft bereits eine Anwendung."""
+    """An application is already running."""
 
     def __init__(self, app_id: str) -> None:
-        super().__init__(f"Es läuft bereits eine Anwendung: {app_id}")
+        super().__init__(f"An application is already running: {app_id}")
         self.app_id = app_id
 
 
 class LaunchFailed(Exception):
-    """Start nicht möglich. Die Meldung ist für die Oberfläche bestimmt (keine Interna)."""
+    """Launch failed. This message is intended for the user interface (no internal details)."""
 
 
 class BackendLocked(RuntimeError):
-    """Ein anderes Backend verwaltet bereits die Prozesse."""
+    """Another backend instance is already managing the processes."""
 
 
 @dataclass(frozen=True)
 class LaunchSpec:
-    """Vollständig vorbereiteter, bereits geprüfter Start. Der Manager vertraut darauf."""
+    """A fully prepared and validated launch specification. The manager trusts this input."""
 
     app_id: str
-    argv: tuple[str, ...]              # argv[0] ist ein absoluter, geprüfter Pfad
+    argv: tuple[str, ...]              # argv[0] is an absolute, validated path
     env: Mapping[str, str]             # komplette Umgebung des Prozesses
     log_path: Path | None = None
-    identity_arg: str | None = None    # exakter argv-Eintrag, der nur zu DIESER Instanz gehört
+    identity_arg: str | None = None    # exact argv entry that belongs to THIS instance only
     long_running: bool = True          # sofortiges Ende (auch Exit 0) gilt als Fehlstart
 
 
@@ -81,17 +81,17 @@ class ExitInfo:
 
 
 # ----------------------------------------------------------------------------
-# Hilfsfunktionen für Dateisystem und /proc
+# Filesystem and /proc helper functions
 # ----------------------------------------------------------------------------
 
 def ensure_private_dir(path: Path) -> Path:
-    """Legt ein Verzeichnis mit Modus 0700 an. Symlinks und fremder Besitz werden abgelehnt."""
+    """Creates a directory with mode 0700. Symlinks and foreign ownership are rejected."""
     path = Path(path)
     path.mkdir(parents=True, exist_ok=True, mode=0o700)
     st = os.lstat(path)
     if stat.S_ISLNK(st.st_mode) or not stat.S_ISDIR(st.st_mode) or st.st_uid != os.getuid():
-        log.error("Verzeichnis nicht vertrauenswürdig (Symlink, kein Verzeichnis oder fremder Besitzer): %s", path)
-        raise LaunchFailed("Ein benötigtes Verzeichnis ist nicht sicher angelegt.")
+        log.error("Untrusted directory (symlink, not a directory, or foreign owner): %s", path)
+        raise LaunchFailed("A required directory was not created securely.")
     if stat.S_IMODE(st.st_mode) != 0o700:
         os.chmod(path, 0o700)
     return path
@@ -103,13 +103,13 @@ def default_runtime_dir(data_dir: Path) -> Path:
 
 
 def _proc_starttime(pid: int) -> int | None:
-    """Startzeit (Ticks seit Boot) eines lebenden Prozesses. None, wenn weg oder Zombie."""
+    """Start time (ticks since boot) of a live process. None if the process is gone or a zombie."""
     try:
         with open(f"/proc/{pid}/stat", "rb") as fh:
             data = fh.read().decode("utf-8", "replace")
     except OSError:
         return None
-    fields = data.rsplit(")", 1)[-1].split()  # Feld 2 (comm) kann Leerzeichen enthalten
+    fields = data.rsplit(")", 1)[-1].split()  # Field 2 (comm) may contain spaces
     if len(fields) < 20 or fields[0] in ("Z", "X"):
         return None
     try:
@@ -127,7 +127,7 @@ def _cmdline(pid: int) -> list[str]:
 
 
 def _find_pids_with_arg(arg: str) -> list[int]:
-    """Eigene Prozesse (gleiche UID), deren argv einen Eintrag EXAKT gleich `arg` enthält."""
+    """Own processes (same UID) whose argv contains an entry exactly equal to `arg`."""
     me, uid = os.getpid(), os.getuid()
     found: list[int] = []
     for entry in os.listdir("/proc"):
@@ -144,7 +144,7 @@ def _find_pids_with_arg(arg: str) -> list[int]:
 
 
 def _signal_verified(pid: int, sig: int, arg: str) -> bool:
-    """Signal nur, wenn der Prozess noch derselbe ist: pidfd fixiert ihn, dann Gegenprüfung."""
+    """Send a signal only if the process is still the same: pidfd pins it, then a second check is performed."""
     fd: int | None
     try:
         fd = os.pidfd_open(pid)
@@ -155,13 +155,13 @@ def _signal_verified(pid: int, sig: int, arg: str) -> bool:
             return False
         if fd is not None:
             signal.pidfd_send_signal(fd, sig)
-        else:  # alter Kernel: etwas weniger sicher, aber gleiche Prüfungen
+        else:  # Older kernel: slightly less secure, but the same checks are performed
             os.kill(pid, sig)
         return True
     except (ProcessLookupError, FileNotFoundError):
         return False
     except OSError as exc:
-        log.warning("Signal an Prozess %s fehlgeschlagen: %s", pid, exc)
+        log.warning("Failed to signal process %s: %s", pid, exc)
         return False
     finally:
         if fd is not None:
@@ -228,7 +228,7 @@ class ProcessManager:
     # --------------------------------------------------- Lebenszyklus des Dienstes
 
     async def startup(self) -> None:
-        """Sperre holen und eine nach einem Absturz noch laufende App übernehmen."""
+        """Acquire the lock and adopt an app that is still running after a crash."""
         if self._runtime_dir is None:
             return
         ensure_private_dir(self._runtime_dir)
@@ -237,12 +237,12 @@ class ProcessManager:
             fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
             os.close(fd)
-            raise BackendLocked("Ein anderes LivingroomOS-Backend läuft bereits.") from None
+            raise BackendLocked("Another LivingroomOS backend is already running.") from None
         self._lock_fd = fd
         await self._recover()
 
     async def shutdown(self, terminate: bool = True) -> None:
-        """terminate=False lässt die App weiterlaufen; das nächste Backend übernimmt sie."""
+        """terminate=False leaves the app running; the next backend instance adopts it."""
         if terminate:
             await self.stop()
         elif self._watcher is not None:
@@ -256,7 +256,7 @@ class ProcessManager:
     async def start(self, spec: LaunchSpec) -> None:
         if self._state is not State.IDLE:
             raise ProcessBusy(self._app_id or "?")
-        # Zustand reservieren, bevor wir awaiten: verhindert Doppelstarts.
+        # Reserve the state before awaiting: prevents duplicate launches.
         self._reset()
         self._state = State.STARTING
         self._app_id = spec.app_id
@@ -265,7 +265,7 @@ class ProcessManager:
         self._log_path = spec.log_path
         try:
             if spec.identity_arg and _find_pids_with_arg(spec.identity_arg):
-                log.warning("%s: Reste einer früheren Instanz gefunden, beende sie", spec.app_id)
+                log.warning("%s: found leftovers from a previous instance; stopping them", spec.app_id)
                 await self._reap_strays(spec.identity_arg)
             log_fd = self._open_log(spec.log_path)
             try:
@@ -275,16 +275,16 @@ class ProcessManager:
                     stdout=log_fd if log_fd is not None else asyncio.subprocess.DEVNULL,
                     stderr=log_fd if log_fd is not None else asyncio.subprocess.DEVNULL,
                     env=dict(spec.env),
-                    start_new_session=True,  # eigene Sitzung und Prozessgruppe
-                    umask=0o077,             # Dateien der App sind privat
+                    start_new_session=True,  # separate session and process group
+                    umask=0o077,             # app files are private
                 )
             finally:
                 if log_fd is not None:
                     os.close(log_fd)
         except OSError as exc:
-            log.error("%s: Start fehlgeschlagen: %s", spec.app_id, exc)
+            log.error("%s: launch failed: %s", spec.app_id, exc)
             self._reset()
-            raise LaunchFailed(f"Start fehlgeschlagen: {exc.strerror or 'Systemfehler'}") from exc
+            raise LaunchFailed(f"Launch failed: {exc.strerror or 'system error'}") from exc
         except BaseException:
             self._reset()
             raise
@@ -318,7 +318,7 @@ class ProcessManager:
             try:
                 await asyncio.wait_for(proc.wait(), timeout=self.startup_grace)
             except TimeoutError:
-                # Nach der Karenzzeit noch am Leben: Start gilt als gelungen.
+                # Still alive after the grace period: launch is considered successful.
                 if self._proc is proc and self._state is State.STARTING:
                     self._state = State.RUNNING
                 await proc.wait()
@@ -326,23 +326,23 @@ class ProcessManager:
             cancelled = True
             raise
         except Exception:
-            log.exception("Überwachung von %s fehlgeschlagen", app_id)
+            log.exception("Monitoring of %s failed", app_id)
         finally:
             if not cancelled and proc.returncode is not None:
                 await self._finalize(app_id, proc.returncode, time.monotonic() - started)
 
     async def _watch_adopted(self, pid: int, starttime: int, app_id: str) -> None:
-        """Beobachtet eine übernommene App, die nicht unser Kindprozess ist (Exit-Code unbekannt)."""
+        """Monitors an adopted app that is not our child process (exit code unknown)."""
         started = time.monotonic()
         while _proc_starttime(pid) == starttime:
             await asyncio.sleep(0.5)
         await self._finalize(app_id, None, time.monotonic() - started)
 
     async def _finalize(self, app_id: str, code: int | None, runtime: float) -> None:
-        """Räumt nach dem Ende der App auf und meldet es genau einmal."""
+        """Cleans up after the app exits and reports the event exactly once."""
         log_path, arg = self._log_path, self._identity_arg
         if self._state is not State.IDLE:
-            self._state = State.STOPPING  # während des Aufräumens kein neuer Start
+            self._state = State.STOPPING  # no new launch while cleanup is in progress
         if arg:
             await self._reap_strays(arg)
 
@@ -356,7 +356,7 @@ class ProcessManager:
         if self._stop_requested:
             reason = "stopped"
         elif code is None:
-            reason = "ended"  # übernommene App: Ende erkannt, Ursache unbekannt
+            reason = "ended"  # adopted app: exit detected, cause unknown
         elif runtime < self.startup_grace and (code != 0 or self._long_running):
             reason = "start_failed"
         elif code == 0:
@@ -379,7 +379,7 @@ class ProcessManager:
         if reason in ("crashed", "start_failed"):
             tail = _log_tail(log_path)
             if tail:
-                log.warning("Letzte Ausgabe von %s:\n%s", app_id, tail)
+                log.warning("Last output from %s:\n%s", app_id, tail)
 
         self._clear_state_file()
         self._reset()
@@ -394,7 +394,7 @@ class ProcessManager:
             try:
                 await hook(info)
             except Exception:
-                log.exception("Rückkehr-Hook fehlgeschlagen")
+                log.exception("Return-to-launcher hook failed")
 
         task = asyncio.create_task(run(), name="exit-hook")
         self._tasks.add(task)
@@ -419,33 +419,33 @@ class ProcessManager:
             try:
                 await asyncio.wait_for(asyncio.shield(watcher), timeout=self.stop_timeout + 2)
             except TimeoutError:
-                log.error("Prozess lässt sich nicht beenden (pid %s)", self._pid)
+                log.error("Cannot terminate process (pid %s)", self._pid)
         return True
 
     def _signal_tree(self, sig: int) -> None:
-        """Signal an die eigene Prozessgruppe, nur solange die Identität feststeht."""
+        """Signal the app's own process group only while its identity is verified."""
         pgid = self._pgid
         if pgid is None:
             return
         if self._proc is not None:
             if self._proc.returncode is not None:
-                return  # Anführer ist weg; Nachzügler erledigt _reap_strays
+                return  # leader is gone; _reap_strays handles stragglers
         elif _proc_starttime(self._pid or -1) != self._starttime:
-            return  # übernommene App: PID gehört nicht mehr zu ihr
+            return  # adopted app: the PID no longer belongs to it
         try:
             os.killpg(pgid, sig)
         except ProcessLookupError:
             pass
         except PermissionError as exc:
-            log.error("Signal an Gruppe %s nicht erlaubt: %s", pgid, exc)
+            log.error("Signaling process group %s is not permitted: %s", pgid, exc)
 
     async def _reap_strays(self, arg: str) -> None:
-        """Beendet Prozesse, die den exakten Instanz-Schalter tragen, aber die Gruppe verlassen haben."""
+        """Terminates processes that carry the exact instance flag but have left the process group."""
         for sig, wait in ((signal.SIGTERM, self.stop_timeout), (signal.SIGKILL, 2.0)):
             pids = _find_pids_with_arg(arg)
             if not pids:
                 return
-            log.info("beende %d Nachzügler (%s)", len(pids), signal.Signals(sig).name)
+            log.info("stopping %d stragglers (%s)", len(pids), signal.Signals(sig).name)
             for pid in pids:
                 _signal_verified(pid, sig, arg)
             deadline = time.monotonic() + wait
@@ -455,9 +455,9 @@ class ProcessManager:
                     return
         left = _find_pids_with_arg(arg)
         if left:
-            log.error("Prozesse lassen sich nicht beenden: %s", left)
+            log.error("Cannot terminate processes: %s", left)
 
-    # ------------------------------------------------- Zustandsdatei und Übernahme
+    # ------------------------------------------------- State file and recovery
 
     def _state_path(self) -> Path | None:
         return self._runtime_dir / "state.json" if self._runtime_dir else None
@@ -479,9 +479,9 @@ class ProcessManager:
             fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=".state-", suffix=".tmp")
             with os.fdopen(fd, "w", encoding="utf-8") as fh:
                 json.dump(data, fh)
-            os.replace(tmp, path)  # mkstemp legt mit 0600 an
+            os.replace(tmp, path)  # mkstemp creates the file with mode 0600
         except OSError as exc:
-            log.warning("Zustandsdatei nicht schreibbar: %s", exc)
+            log.warning("State file is not writable: %s", exc)
 
     def _clear_state_file(self) -> None:
         path = self._state_path()
@@ -491,7 +491,7 @@ class ProcessManager:
             except FileNotFoundError:
                 pass
             except OSError as exc:
-                log.warning("Zustandsdatei nicht löschbar: %s", exc)
+                log.warning("Cannot delete state file: %s", exc)
 
     async def _recover(self) -> None:
         path = self._state_path()
@@ -507,7 +507,7 @@ class ProcessManager:
         except FileNotFoundError:
             return
         except (OSError, ValueError, KeyError, TypeError) as exc:
-            log.warning("Zustandsdatei unbrauchbar, wird verworfen: %s", exc)
+            log.warning("State file is invalid and will be discarded: %s", exc)
             self._clear_state_file()
             return
 
@@ -524,9 +524,9 @@ class ProcessManager:
             lp = data.get("log_path")
             self._log_path = Path(lp) if isinstance(lp, str) else None
             self._watcher = asyncio.create_task(self._watch_adopted(pid, starttime, app_id), name=f"adopt-{app_id}")
-            log.info("%s übernommen (pid %s)", app_id, pid)
+            log.info("Adopted %s (pid %s)", app_id, pid)
         else:
-            log.info("Zustandsdatei ist veraltet (%s lief nicht mehr)", app_id)
+            log.info("State file is stale (%s was no longer running)", app_id)
             self._clear_state_file()
             if arg:
                 await self._reap_strays(arg)
