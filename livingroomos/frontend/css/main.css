@@ -82,7 +82,7 @@ ul { list-style: none; margin: 0; padding: 0; }
 [data-edge="down"]  { animation: edge-down  .26s var(--ease); }
 @media (prefers-reduced-motion: reduce) { [data-edge] { animation: none; } }
 
-/* ---- App-Kacheln ---- */
+/* ---- App tiles ---- */
 .tile {
   --tile-color: #3a4256;
   position: relative;
@@ -239,7 +239,7 @@ kbd {
   *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
 
-/* Barrierefreiheit: Animationen auf Wunsch reduzieren. */
+/* Accessibility: reduce animations when requested. */
 body[data-reduce-motion="true"] *,
 body[data-reduce-motion="true"] *::before,
 body[data-reduce-motion="true"] *::after {
