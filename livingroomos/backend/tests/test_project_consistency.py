@@ -1,10 +1,10 @@
-"""Konsistenz von Konfiguration, Abhängigkeiten, Portabilität und Dokumentation.
+"""Project consistency: configuration, dependencies, portability, and documentation.
 
-Diese Tests erzwingen die Projektregeln automatisch:
-- jede Python-Abhängigkeit steht in requirements.txt,
-- jedes Debian-Paket steht in docs/SYSTEMABHAENGIGKEITEN.md,
-- keine ARM-Zielarchitektur; x86_64 wird explizit geprüft,
-- die ausgelieferte Konfiguration ist gültig.
+These tests automatically enforce the project rules:
+- every Python dependency is listed in requirements.txt,
+- every Debian package is documented in docs/SYSTEM_DEPENDENCIES.md,
+- no ARM target architecture; x86_64 is checked explicitly,
+- the shipped configuration is valid.
 """
 from __future__ import annotations
 
@@ -29,7 +29,7 @@ assert _CHECKER_SPEC is not None and _CHECKER_SPEC.loader is not None
 _CHECKER = importlib.util.module_from_spec(_CHECKER_SPEC)
 _CHECKER_SPEC.loader.exec_module(_CHECKER)
 
-# Direkt importiert, aber von fastapi mitgebracht (Begründung in requirements.txt).
+# Imported directly but provided by FastAPI (explained in requirements.txt).
 BROUGHT_BY_FASTAPI = {"starlette", "pydantic"}
 ARM_WORDS = re.compile(r"aarch64|arm64|raspberry|armv[0-9]", re.IGNORECASE)
 
@@ -124,7 +124,7 @@ class PortabilityTests(unittest.TestCase):
             for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
                 if isinstance(node, ast.Constant) and isinstance(node.value, str) and ARM_WORDS.search(node.value):
                     offenders.append(f"{path.relative_to(BACKEND)}: {node.value[:60]!r}")
-        self.assertEqual(offenders, [], "Hardwarespezifisches gehört in Konfiguration oder Profile, nicht in den Code")
+        self.assertEqual(offenders, [], "Hardware-specific content belongs in configuration or profiles, not in code")
 
     def test_frontend_and_system_files_name_no_architecture(self) -> None:
         offenders = []
@@ -147,7 +147,7 @@ class DependencyTests(unittest.TestCase):
             missing = third_party - allowed
             if missing:
                 undocumented[str(path.relative_to(BACKEND))] = sorted(missing)
-        self.assertEqual(undocumented, {}, "Abhängigkeit fehlt in requirements.txt")
+        self.assertEqual(undocumented, {}, "Dependency missing from requirements.txt")
 
     def test_requirements_are_not_unused(self) -> None:
         used = set()
@@ -179,14 +179,14 @@ class DependencyTests(unittest.TestCase):
         run_sh = (ROOT / "run.sh").read_text(encoding="utf-8")
         if pattern.search(run_sh):
             offenders.append("run.sh")
-        self.assertEqual(offenders, [], "Skripte dürfen nichts aus dem Netz laden oder installieren")
+        self.assertEqual(offenders, [], "Scripts must not download or install anything from the network")
 
 
 class DocumentationTests(unittest.TestCase):
     PACKAGE_RE = re.compile(r"^[a-z0-9][a-z0-9+.\-]+$")
 
     def test_every_debian_package_is_explained_in_the_system_dependency_doc(self) -> None:
-        doc = (ROOT / "docs" / "SYSTEMABHAENGIGKEITEN.md").read_text(encoding="utf-8")
+        doc = (ROOT / "docs" / "SYSTEM_DEPENDENCIES.md").read_text(encoding="utf-8")
         for listing in ("debian-packages.txt", "debian-packages-optional.txt"):
             names = package_names(ROOT / listing)
             self.assertTrue(names, listing)
@@ -204,13 +204,13 @@ class DocumentationTests(unittest.TestCase):
         self.assertTrue({"python3", "python3-fastapi", "python3-uvicorn", "labwc", "greetd"} <= required)
 
     def test_required_project_documents_exist_and_are_not_empty(self) -> None:
-        for name in ("README.md", "INSTALL.md", "ARCHITECTURE.md", "CHANGELOG.md", "docs/SYSTEMABHAENGIGKEITEN.md", "docs/SICHERHEIT.md", "docs/APP_KONFIGURATION.md"):
+        for name in ("README.md", "INSTALL.md", "ARCHITECTURE.md", "CHANGELOG.md", "docs/SYSTEM_DEPENDENCIES.md", "docs/SECURITY.md", "docs/APP_CONFIGURATION.md"):
             with self.subTest(file=name):
                 self.assertGreater(len((ROOT / name).read_text(encoding="utf-8").strip()), 200)
 
     def test_changelog_documents_the_current_version(self) -> None:
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        self.assertRegex(changelog, re.compile(rf"^## \[{re.escape(__version__)}\]", re.MULTILINE), "aktuelle Version fehlt im CHANGELOG")
+        self.assertRegex(changelog, re.compile(rf"^## \[{re.escape(__version__)}\]", re.MULTILINE), "Current version is missing from the changelog")
 
     def test_every_listed_relative_link_in_markdown_exists(self) -> None:
         broken = []
