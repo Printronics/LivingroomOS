@@ -8,7 +8,7 @@
      data-key="id"           stable identifier; focus can find the element again after a
                              list rebuild
      data-nav-default        preferred initial focus target for a view
-     data-nav-up|down|left|right="id | #selektor | none"
+     data-nav-up|down|left|right="id | #selector | none"
                              fixed target instead of geometry ("none" disables movement in that direction)
      data-repeatable         Enter may activate this element repeatedly in quick succession
      data-busy               Element is busy; Enter is ignored
