@@ -1,10 +1,10 @@
-# Wird von labwc beim Start der Sitzung mit sh ausgeführt (Aufruf: labwc -C /opt/livingroomos/system/labwc).
+# Executed by labwc with sh when the session starts (command: labwc -C /opt/livingroomos/system/labwc).
 #
-# 1. WAYLAND_DISPLAY an den systemd-Benutzermanager geben, damit Google Chrome aus den Benutzer-Units
+# 1. Pass WAYLAND_DISPLAY to the systemd user manager so Google Chrome launched by user units
 #    das Compositor-Fenster findet.
-# 2. Backend und Launcher starten.
+# 2. Start the backend and launcher.
 #
-# Optional (Paket wlr-randr, Auflösung festlegen; Ausgangsname mit "wlr-randr" ermitteln):
+# Optional (wlr-randr package, set display resolution; find the output name with "wlr-randr"):
 #   wlr-randr --output HDMI-A-1 --mode 1920x1080 &
 systemctl --user import-environment WAYLAND_DISPLAY
 systemctl --user start livingroomos.target
