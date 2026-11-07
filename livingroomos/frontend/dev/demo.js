@@ -13,7 +13,7 @@ function h(tag, cls, text, attrs = {}) {
   return el;
 }
 
-function bump(label) { $("count").textContent = `${++count} Aktionen · ${label}`; }
+function bump(label) { $("count").textContent = `${++count} actions · ${label}`; }
 
 // Tiles have different widths; the last row is shorter.
 const layout = [["a", ""], ["b", "w2"], ["c", ""], ["d", ""], ["e", "w3"], ["f", "w3"], ["g", ""], ["h", ""], ["i", "w2"]];
