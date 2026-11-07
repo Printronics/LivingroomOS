@@ -1,6 +1,6 @@
 # LivingroomOS – Software Architecture
 
-**Status: Version 0.6.0**
+**Status: Version 0.6.0 · app configuration via individual CFG files**
 
 This document describes what is **actually implemented**. Where the implementation differs from the original architectural design, the reasons are documented in Section 11.
 
@@ -47,6 +47,7 @@ At runtime, the system consists of only **a compositor, a browser, and one Pytho
         │ services/  app_launcher     │                                       Frontend: HTML/CSS/Vanilla-JS
         │            process_manager  │                                       remote.js → navigation.js → app.js
         │            settings_store   │
+        │            app_config_loader│── reads config/apps/*.cfg
         └──────────────┬──────────────┘
                        │ asyncio.create_subprocess_exec (no shell, separate process group)
                        ▼
@@ -76,7 +77,19 @@ Each task has exactly one designated location. Dependencies point downward only:
 | `config/apps/*.cfg` | One web-app definition per file (metadata, URL, and approved browser options) | Server and UI settings |
 | `tests/` | Unit, integration, and consistency tests (Section 9) | |
 
-### 3.2 Frontend (`frontend/`)
+### 3.2 App configuration (`backend/config/`)
+
+`settings.json` and the individual app definitions have separate responsibilities:
+
+- `settings.json` supplies server settings, UI settings, and optional legacy/debug entries. The runtime copy lives at `/var/lib/livingroomos/.config/livingroomos/settings.json` and is writable only by the service account for UI persistence.
+- `apps/*.cfg` defines one web app per file. The shipped files live in `/opt/livingroomos/backend/config/apps/` and are administrator-managed, read-only to the service account.
+- `AppConfigLoader` scans `*.cfg` files in deterministic filename order during settings/app loading. It validates the matching filename and app ID, required title, HTTP(S) URL, approved Chrome executable, color, category, and boolean browser options. A malformed file is skipped without hiding other valid CFG apps; its diagnostic is exposed through `config_problems`.
+- The loader generates the Chrome argument list itself, including the per-app `{profile_dir}` placeholder. CFG files cannot provide arbitrary shell commands or arbitrary executables. The existing `AppLauncher.parse_apps` performs the launcher's additional command and security validation.
+- The frontend remains API-driven: `GET /api/v1/apps` supplies the app metadata used to render tiles. Adding an app does not require a frontend code change.
+
+See [App Configuration](docs/APP_KONFIGURATION.md) for the exact file format.
+
+### 3.3 Frontend (`frontend/`)
 
 | File | Responsibility |
 |---|---|
@@ -91,7 +104,7 @@ Each task has exactly one designated location. Dependencies point downward only:
 
 `app.js` is the only module that brings `navigation.js`, `remote.js`, and `api.js` together. The two navigation modules do not know about each other or the application.
 
-### 3.3 Session Configuration (`system/`, files only)
+### 3.4 Session Configuration (`system/`, files only)
 
 | File | Purpose |
 |---|---|
