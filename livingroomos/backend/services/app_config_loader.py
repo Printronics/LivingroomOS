@@ -1,7 +1,7 @@
 """Loads individual app definitions from config/apps/*.cfg.
 
 These files describe web apps only. Launch commands are generated here from
-festgelegten Browser-Optionen erzeugt; Konfigurationsdateien enthalten keine
+approved browser options; configuration files do not contain
 arbitrary shell commands.
 """
 from __future__ import annotations
