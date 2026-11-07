@@ -1,6 +1,6 @@
-"""Tests für SettingsStore: Laden, Fehlermeldungen, atomares und nebenläufiges Speichern.
+"""Tests for SettingsStore: loading, error messages, atomic and concurrent writes.
 
-Ausführen (aus backend/):  python3 -m unittest discover -s tests -v
+Run from backend/: python3 -m unittest discover -s tests -v
 """
 from __future__ import annotations
 
@@ -55,7 +55,7 @@ class SettingsStoreTests(unittest.TestCase):
     def test_missing_file_is_a_clear_error(self) -> None:
         with self.assertRaises(SettingsError) as ctx:
             SettingsStore(self.dir / "gibt-es-nicht.json")
-        self.assertIn("fehlt", str(ctx.exception))
+        self.assertIn("missing", str(ctx.exception))
 
     def test_invalid_json_reports_line(self) -> None:
         self.path.write_text('{\n  "ui": {\n    "a": }\n}\n', encoding="utf-8")
@@ -82,7 +82,7 @@ class SettingsStoreTests(unittest.TestCase):
         self.assertEqual(on_disk["server"], SAMPLE["server"])
         self.assertEqual(on_disk["ui"]["tile_size"], "large")
         self.assertTrue(self.path.read_text(encoding="utf-8").endswith("\n"))
-        self.assertIn("Demö", self.path.read_text(encoding="utf-8"))  # kein ö-Escape
+        self.assertIn("Demö", self.path.read_text(encoding="utf-8"))  # no Unicode escape for ö
 
     def test_failed_write_keeps_file_and_memory_and_leaves_no_temp_file(self) -> None:
         store = SettingsStore(self.path)
