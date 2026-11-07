@@ -1,5 +1,5 @@
-/* LivingroomOS – Client für die lokale HTTP-API.
-   Das Frontend sendet nur Absichten (z. B. "starte App <id>"), nie Befehle. */
+/* LivingroomOS – client for the local HTTP API.
+   The frontend sends intentions only (for example, "start app <id>"), never commands. */
 
 const BASE = "/api/v1";
 const DEFAULT_TIMEOUT_MS = 4000;
@@ -10,7 +10,7 @@ export class ApiError extends Error {
     this.name = "ApiError";
     this.code = code;       // maschinenlesbar, z. B. "busy", "not_installed"
     this.status = status;   // HTTP-Status, 0 bei Netzwerkfehlern
-    this.network = network; // true: Backend nicht erreichbar
+    this.network = network; // true: backend is unreachable
     this.data = data;       // komplette Fehlerantwort
   }
 }
@@ -31,7 +31,7 @@ async function request(method, path, { body, timeout = DEFAULT_TIMEOUT_MS } = {}
       res = await fetch(BASE + path, init);
     } catch (err) {
       const timedOut = err?.name === "AbortError";
-      throw new ApiError(timedOut ? "Das Backend antwortet nicht." : "Das Backend ist nicht erreichbar.", {
+      throw new ApiError(timedOut ? "The backend did not respond." : "The backend is unreachable.", {
         code: timedOut ? "timeout" : "unreachable",
         network: true,
       });
@@ -46,7 +46,7 @@ async function request(method, path, { body, timeout = DEFAULT_TIMEOUT_MS } = {}
 
     if (!res.ok) {
       const e = data?.error;
-      throw new ApiError(e?.message ?? `Unerwarteter Fehler (HTTP ${res.status}).`, {
+      throw new ApiError(e?.message ?? `Unexpected error (HTTP ${res.status}).`, {
         code: e?.code ?? `http_${res.status}`,
         status: res.status,
         data,
