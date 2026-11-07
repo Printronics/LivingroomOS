@@ -109,7 +109,7 @@ class CtlTests(unittest.TestCase):
         self.thread.start()
 
     def test_usage_errors_are_exit_2(self) -> None:
-        for args in ([], ["unbekannt"], ["home", "x"], ["status", "x"], ["wait", "abc"]):
+        for args in ([], ["unknown"], ["home", "x"], ["status", "x"], ["wait", "abc"]):
             with self.subTest(args=args):
                 self.assertEqual(self.run_ctl(*args)[0], 2)
         self.assertEqual(FakeBackend.seen, [])
