@@ -1,6 +1,6 @@
 # LivingroomOS – Python runtime dependencies.
 #
-# Empfohlener Weg auf Debian 13: dieselben Bibliotheken aus apt (python3-fastapi,
+# Recommended on Debian 13: install the same libraries through apt (python3-fastapi,
 # python3-uvicorn); see INSTALL.md and docs/SYSTEM_DEPENDENCIES.md. This file is for
 # development and the virtual-environment path: python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 #
