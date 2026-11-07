@@ -1,4 +1,4 @@
-/* LivingroomOS – Seitenaufbau. Abstände berücksichtigen Overscan alter Fernseher. */
+/* LivingroomOS – page layout. Spacing accounts for overscan on older TVs. */
 
 body { --cols: 3; }
 body[data-tile-size="large"] { --cols: 2; }
@@ -18,15 +18,15 @@ body[data-tile-size="large"] { --cols: 2; }
 
 .stage { min-height: 0; }
 
-/* Der Scrollbereich hat Innenabstand, damit vergrößerte Kacheln und der
-   Fokusring nicht abgeschnitten werden. */
+/* The scroll area has padding so enlarged tiles and the
+   focus ring are not clipped. */
 .view {
   height: calc(100% + 3.2rem);
   margin: -1.6rem;
   padding: 1.6rem;
   overflow-y: auto;
   scrollbar-width: none;
-  scroll-padding: 1.6rem; /* fokussiertes Element rückt mit Abstand ins Bild */
+  scroll-padding: 1.6rem; /* keeps the focused element away from the screen edge */
 }
 .view::-webkit-scrollbar { display: none; }
 
