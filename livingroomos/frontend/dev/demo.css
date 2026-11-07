@@ -1,4 +1,4 @@
-/* Nur für die Demo: ungleich große Elemente, damit die Geometrie-Navigation sichtbar wird. */
+/* Demo only: differently sized elements make geometry-based navigation visible. */
 .demo { overflow: hidden; }
 .demo__grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1.4rem; margin-bottom: 1.6rem; }
 .demo__grid li { height: 9rem; }
