@@ -40,6 +40,18 @@ class SettingsStoreTests(unittest.TestCase):
         self.assertEqual(store.ui["tile_size"], "normal")
         self.assertEqual(store.apps[0]["id"], "demo")
 
+    def test_cfg_apps_are_loaded_alongside_legacy_entries(self) -> None:
+        app_dir = self.dir / "apps"
+        app_dir.mkdir()
+        (app_dir / "netflix.cfg").write_text(
+            "[app]\nid = netflix\ntitle = Netflix\n"
+            "[browser]\nurl = https://www.netflix.com/\n",
+            encoding="utf-8",
+        )
+        store = SettingsStore(self.path, app_config_dir=app_dir)
+        self.assertEqual([app["id"] for app in store.apps], ["netflix", "demo"])
+        self.assertEqual(store.app_config_problems, [])
+
     def test_missing_file_is_a_clear_error(self) -> None:
         with self.assertRaises(SettingsError) as ctx:
             SettingsStore(self.dir / "gibt-es-nicht.json")
