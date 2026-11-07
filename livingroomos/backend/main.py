@@ -43,7 +43,7 @@ async def lifespan(app: FastAPI):
     store = SettingsStore(
         CONFIG_PATH,
         app_config_dir=BASE_DIR / "config" / "apps",
-    )  # SettingsError beendet den Start mit klarer Meldung
+    )  # SettingsError aborts startup with a clear message
     data_dir = Path(str(store.server.get("data_dir", "~/.local/share/livingroomos"))).expanduser()
     manager = ProcessManager(
         startup_grace=float(store.server.get("startup_grace_s", 1.0)),
@@ -51,7 +51,7 @@ async def lifespan(app: FastAPI):
         runtime_dir=default_runtime_dir(data_dir),
     )
     launcher = AppLauncher(store, manager)
-    await launcher.startup()  # Sperre holen, laufende App nach Absturz übernehmen (BackendLocked → Abbruch)
+    await launcher.startup()  # Acquire the lock and adopt an app left running after a crash (BackendLocked -> abort)
     app.state.store = store
     app.state.manager = manager
     app.state.launcher = launcher
@@ -62,7 +62,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="LivingroomOS", version=__version__, lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
 
-# Nur Loopback-Hostnamen: schützt vor DNS-Rebinding.
+# Loopback hostnames only: protects against DNS rebinding.
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost"])
 
 
@@ -72,8 +72,8 @@ def _error(status: int, code: str, message: str) -> JSONResponse:
 
 @app.middleware("http")
 async def api_guard(request: Request, call_next):
-    # Schreibende Aufrufe brauchen einen eigenen Header. Fremde Webseiten können ihn
-    # ohne CORS-Freigabe nicht setzen (Preflight scheitert) → Schutz vor CSRF.
+    # Write requests require a custom header. External websites cannot set it
+    # without CORS permission (the preflight request fails), protecting against CSRF.
     if (
         request.url.path.startswith("/api/")
         and request.method not in {"GET", "HEAD", "OPTIONS"}
@@ -83,7 +83,7 @@ async def api_guard(request: Request, call_next):
     response = await call_next(request)
     response.headers["Content-Security-Policy"] = CSP
     response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["Cache-Control"] = "no-store"  # Prototyp: immer frische Dateien
+    response.headers["Cache-Control"] = "no-store"  # Prototype: always serve fresh files
     return response
 
 
@@ -98,7 +98,7 @@ async def http_error(_: Request, exc: StarletteHTTPException):
 async def validation_error(_: Request, exc: RequestValidationError):
     first = exc.errors()[0] if exc.errors() else {}
     where = ".".join(str(p) for p in first.get("loc", []) if p != "body")
-    return _error(422, "invalid_request", f"Ungültige Eingabe ({where}): {first.get('msg', '')}")
+    return _error(422, "invalid_request", f"Invalid input ({where}): {first.get('msg', '')}")
 
 
 @app.exception_handler(SettingsError)
@@ -108,15 +108,15 @@ async def settings_error(_: Request, exc: SettingsError):
 
 @app.exception_handler(Exception)
 async def unexpected_error(_: Request, exc: Exception):
-    log.exception("Unerwarteter Fehler")
-    return _error(500, "internal_error", "Interner Fehler im Backend.")
+    log.exception("Unexpected error")
+    return _error(500, "internal_error", "Internal backend error.")
 
 
 app.include_router(system_api.router)
 app.include_router(apps_api.router)
 app.include_router(settings_api.router)
 
-# Frontend zuletzt einhängen, damit /api/* Vorrang hat.
+# Mount the frontend last so /api/* takes precedence.
 if FRONTEND_DIR.is_dir():
     app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
 else:
