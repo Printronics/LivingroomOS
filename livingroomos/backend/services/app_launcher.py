@@ -288,6 +288,15 @@ class AppLauncher:
         env["PATH"] = ":".join(self._bin_dirs) or "/usr/bin:/bin"
         if app is not None:
             env.update(dict(app.env))
+
+        # Chrome/Chromium starten für jede App einen eigenen Prozess samt Crashpad.
+        # Eine isolierte, beschreibbare XDG-Umgebung verhindert, dass Kindprozesse
+        # auf nicht vorhandene oder fremde Benutzerpfade zurückfallen. Die Pfade
+        # liegen zentral unter data_dir und sind unabhängig vom Backend-Startkontext.
+        config_home = ensure_private_dir(self._data_dir / "chrome-config")
+        cache_home = ensure_private_dir(self._data_dir / "chrome-cache")
+        env["XDG_CONFIG_HOME"] = str(config_home)
+        env["XDG_CACHE_HOME"] = str(cache_home)
         return env
 
     def _resolve_executable(self, name: str) -> Path:
