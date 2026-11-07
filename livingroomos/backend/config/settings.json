@@ -20,51 +20,6 @@
   },
   "apps": [
     {
-      "id": "webapp-one",
-      "title": "Streaming-App 1",
-      "subtitle": "Eigener Streaming-Dienst",
-      "icon": "1",
-      "color": "#3b6688",
-      "command": [
-        "google-chrome-stable",
-        "--app=https://example.com/",
-        "--user-data-dir={profile_dir}",
-        "--ozone-platform=wayland",
-        "--start-fullscreen"
-      ],
-      "category": "media"
-    },
-    {
-      "id": "webapp-two",
-      "title": "Streaming-App 2",
-      "subtitle": "Eigener Video-Dienst",
-      "icon": "2",
-      "color": "#477b68",
-      "command": [
-        "google-chrome-stable",
-        "--app=https://example.org/",
-        "--user-data-dir={profile_dir}",
-        "--ozone-platform=wayland",
-        "--start-fullscreen"
-      ],
-      "category": "media"
-    },
-    {
-      "id": "webapp-three",
-      "title": "Mediathek",
-      "subtitle": "Eigene Mediathek",
-      "icon": "3",
-      "color": "#76618f",
-      "command": [
-        "google-chrome-stable",
-        "--app=http://localhost:8096/",
-        "--user-data-dir={profile_dir}",
-        "--ozone-platform=wayland",
-        "--start-fullscreen"
-      ],
-      "category": "media"
-    },
-    {
       "id": "demo",
       "title": "Demo-App",
       "subtitle": "Testprozess, läuft 10 Minuten",
