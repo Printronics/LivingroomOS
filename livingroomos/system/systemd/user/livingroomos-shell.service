@@ -1,5 +1,5 @@
 [Unit]
-Description=LivingroomOS Launcher (Google Chrome im Kiosk-Modus)
+Description=LivingroomOS launcher (Google Chrome kiosk mode)
 After=livingroomos-backend.service
 # Intentionally use "After", not "Requires": if the backend restarts, the launcher stays open and displays
 # "Backend unavailable" until it responds again.
