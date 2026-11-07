@@ -10,7 +10,7 @@ Security model: docs/SECURITY.md. Key points:
 * Process identity is verified using the /proc start time and pidfd (preventing PID reuse).
 * A lock file prevents multiple backend instances; a state file allows recovery after a crash.
 
-Nur Standardbibliothek. Linux-spezifisch (/proc, pidfd, Kernel >= 5.3).
+Standard library only. Linux-specific (/proc, pidfd, kernel >= 5.3).
 """
 from __future__ import annotations
 
@@ -67,12 +67,12 @@ class LaunchSpec:
     env: Mapping[str, str]             # komplette Umgebung des Prozesses
     log_path: Path | None = None
     identity_arg: str | None = None    # exact argv entry that belongs to THIS instance only
-    long_running: bool = True          # sofortiges Ende (auch Exit 0) gilt als Fehlstart
+    long_running: bool = True          # an immediate exit (including exit 0) counts as a failed launch
 
 
 @dataclass(frozen=True)
 class ExitInfo:
-    seq: int                # fortlaufend; das Frontend zeigt jedes Ende nur einmal
+    seq: int                # monotonically increasing; the frontend displays each exit only once
     app_id: str
     reason: str             # "ok" | "stopped" | "crashed" | "start_failed" | "ended"
     code: int | None
@@ -403,7 +403,7 @@ class ProcessManager:
     # -------------------------------------------------------------------- Stop
 
     async def stop(self) -> bool:
-        """Beendet die laufende App: SIGTERM an ihre Gruppe, nach Frist SIGKILL."""
+        """Stops the running app: send SIGTERM to its process group, then SIGKILL after the timeout."""
         watcher = self._watcher
         if self._state is State.IDLE or self._pgid is None or watcher is None:
             return False
