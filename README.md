@@ -26,11 +26,11 @@ The intended target environment includes:
 - Network connectivity for web applications and updates
 - Suitable input devices, such as a remote control, keyboard, or mouse
 
-For detailed dependency information, see [System Dependencies](livingroomos/docs/SYSTEMABHAENGIGKEITEN.md).
+For detailed dependency information, see [System Dependencies](livingroomos/docs/SYSTEM_DEPENDENCIES.md).
 
 ## Add web applications
 
-Create a file such as `livingroomos/backend/config/apps/netflix.cfg` to add a web app. The backend validates each file and builds the Chrome launch command; no Python or frontend edits are required. The filename must match the `id` in the file. See the [App Configuration Guide](livingroomos/docs/APP_KONFIGURATION.md) for the format, supported fields, examples, and security rules.
+Create a file such as `livingroomos/backend/config/apps/netflix.cfg` to add a web app. The backend validates each file and builds the Chrome launch command; no Python or frontend edits are required. The filename must match the `id` in the file. See the [App Configuration Guide](livingroomos/docs/APP_CONFIGURATION.md) for the format, supported fields, examples, and security rules.
 
 The central `settings.json` is now used for server/UI settings and optional legacy or debug entries; the shipped web apps are separate CFG files.
 
@@ -60,8 +60,8 @@ LivingroomOS/
     │   ├── config/
     │   └── tests/
     ├── docs/
-    │   ├── SICHERHEIT.md
-    │   └── SYSTEMABHAENGIGKEITEN.md
+    │   ├── SECURITY.md
+    │   └── SYSTEM_DEPENDENCIES.md
     ├── system/
     └── ...
 ```
@@ -90,9 +90,9 @@ Additional technical information is available in the following documents:
 
 - [Architecture](livingroomos/ARCHITECTURE.md)
 - [Changelog](livingroomos/CHANGELOG.md)
-- [Security Documentation](livingroomos/docs/SICHERHEIT.md)
-- [App Configuration Guide](livingroomos/docs/APP_KONFIGURATION.md)
-- [System Dependencies](livingroomos/docs/SYSTEMABHAENGIGKEITEN.md)
+- [Security Documentation](livingroomos/docs/SECURITY.md)
+- [App Configuration Guide](livingroomos/docs/APP_CONFIGURATION.md)
+- [System Dependencies](livingroomos/docs/SYSTEM_DEPENDENCIES.md)
 
 ## Development Status
 
