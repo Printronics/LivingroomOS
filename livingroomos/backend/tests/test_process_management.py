@@ -237,7 +237,7 @@ class TestCrashes(Base):
         self.assertEqual(got["quick0b"]["reason"], "ok")
         self.assertEqual(got["fine"]["reason"], "ok")
         self.assertEqual((got["killed"]["reason"], got["killed"]["signal"]), ("crashed", "SIGKILL"))
-        self.assertEqual([got[k]["seq"] for k in got], [1, 2, 3, 4, 5, 6])  # jedes Ende einmal, fortlaufend
+        self.assertEqual([got[k]["seq"] for k in got], [1, 2, 3, 4, 5, 6])  # each exit exactly once, in sequence
 
     async def test_log_file_and_crash_output(self) -> None:
         code = "import sys,time; print('boom-stdout'); sys.stdout.flush(); sys.stderr.write('boom-stderr\\n'); time.sleep(0.8); sys.exit(2)"
