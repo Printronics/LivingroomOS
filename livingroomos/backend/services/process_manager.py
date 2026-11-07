@@ -113,7 +113,7 @@ def _proc_starttime(pid: int) -> int | None:
     if len(fields) < 20 or fields[0] in ("Z", "X"):
         return None
     try:
-        return int(fields[19])  # Feld 22 der Gesamtliste
+        return int(fields[19])  # Field 22 in the full stat field list
     except ValueError:
         return None
 
