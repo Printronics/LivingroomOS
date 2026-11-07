@@ -3,7 +3,7 @@
    Standalone: knows nothing about navigation or the interface. Converts key presses into actions
    and calls handler(action, detail).
 
-   Aktionen:  up | down | left | right | ok | back | home | menu | next | prev
+   Actions:  up | down | left | right | ok | back | home | menu | next | prev
    (next/prev are generated from Tab/Shift+Tab so Tab never moves browser focus)
 
    Protection against repeated key events (held keys, bouncing remote controls, double presses):
