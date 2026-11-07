@@ -54,7 +54,7 @@ class SettingsStoreTests(unittest.TestCase):
 
     def test_missing_file_is_a_clear_error(self) -> None:
         with self.assertRaises(SettingsError) as ctx:
-            SettingsStore(self.dir / "gibt-es-nicht.json")
+            SettingsStore(self.dir / "does-not-exist.json")
         self.assertIn("missing", str(ctx.exception))
 
     def test_invalid_json_reports_line(self) -> None:
