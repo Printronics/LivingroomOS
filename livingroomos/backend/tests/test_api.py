@@ -1,7 +1,7 @@
-"""Tests der HTTP-Schnittstelle (FastAPI) mit echten Prozessen.
+"""Tests for the HTTP interface (FastAPI) using real processes.
 
-Braucht fastapi und httpx (requirements-dev.txt, Debian: python3-fastapi, python3-httpx). Fehlt eines davon,
-werden die Tests übersprungen. Ausführen (aus backend/):  python3 -m unittest discover -s tests -v
+Requires fastapi and httpx (requirements-dev.txt; Debian: python3-fastapi, python3-httpx). If either is missing,
+the tests are skipped. Run from backend/: python3 -m unittest discover -s tests -v
 """
 from __future__ import annotations
 
@@ -36,7 +36,7 @@ def app_entry(app_id: str, command: list[str]) -> dict:
     return {"id": app_id, "title": app_id.title(), "command": command}
 
 
-@unittest.skipUnless(HAVE_STACK, "fastapi und httpx fehlen (siehe requirements-dev.txt)")
+@unittest.skipUnless(HAVE_STACK, "fastapi and httpx are missing (see requirements-dev.txt)")
 class ApiTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -52,7 +52,7 @@ class ApiTests(unittest.TestCase):
                         app_entry("alpha", SLEEP),
                         app_entry("beta", SLEEP),
                         app_entry("crash", ["{python}", "-c", "import sys, time; time.sleep(0.8); sys.exit(3)"]),
-                        app_entry("missing", ["livingroomos-test-programm-gibt-es-nicht"]),
+                        app_entry("missing", ["livingroomos-test-program-does-not-exist"]),
                     ],
                 }
             ),
@@ -60,10 +60,10 @@ class ApiTests(unittest.TestCase):
         )
         cls._env = mock.patch.dict(os.environ, {"LIVINGROOMOS_CONFIG": str(cls.config_path), "XDG_RUNTIME_DIR": str(tmp / "run")})
         cls._env.start()
-        sys.modules.pop("main", None)  # Konfigurationspfad wird beim Import gelesen
+        sys.modules.pop("main", None)  # Configuration path is read during import
         cls.main = importlib.import_module("main")
         cls._client_cm = TestClient(cls.main.app, base_url="http://127.0.0.1:8750")
-        cls.client = cls._client_cm.__enter__()  # führt den Lifespan aus (Sperre, Launcher)
+        cls.client = cls._client_cm.__enter__()  # runs the lifespan (lock, launcher)
 
     @classmethod
     def tearDownClass(cls) -> None:
@@ -87,7 +87,7 @@ class ApiTests(unittest.TestCase):
     def launch(self, app_id: str):
         return self.client.post(f"/api/v1/apps/{app_id}/launch", headers=WRITE)
 
-    # --- Sicherheit -----------------------------------------------------------------------
+    # --- Security -----------------------------------------------------------------------
 
     def test_health(self) -> None:
         self.assertEqual(self.client.get("/api/v1/health").json(), {"status": "ok"})
@@ -118,7 +118,7 @@ class ApiTests(unittest.TestCase):
             self.assertEqual(set(entry), {"id", "title", "subtitle", "icon", "color", "available", "category"})
         self.assertNotIn("sleep", json.dumps(apps))
 
-    # --- Start, Stop, Status --------------------------------------------------------------
+    # --- Launch, stop, status --------------------------------------------------------------
 
     def test_launch_stop_cycle(self) -> None:
         response = self.launch("alpha")
@@ -159,7 +159,7 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(self.client.get("/api/v1/apps/status").json()["state"], "idle")
 
     def test_targeted_stop_only_affects_the_named_app(self) -> None:
-        self.assertEqual(self.client.post("/api/v1/apps/alpha/stop", headers=WRITE).status_code, 409)  # nichts läuft
+        self.assertEqual(self.client.post("/api/v1/apps/alpha/stop", headers=WRITE).status_code, 409)  # nothing is running
         self.launch("beta")
         wrong = self.client.post("/api/v1/apps/alpha/stop", headers=WRITE)
         self.assertEqual(wrong.status_code, 409)
@@ -176,7 +176,7 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(status["last_exit"]["code"], 3)
         self.assertEqual(status["last_exit"]["app_id"], "crash")
 
-    # --- Einstellungen --------------------------------------------------------------------
+    # --- Settings --------------------------------------------------------------------
 
     def test_settings_defaults_and_patch_are_persisted(self) -> None:
         self.assertEqual(set(self.client.get("/api/v1/settings").json()["ui"]), {"clock_24h", "show_clock", "tile_size", "reduce_motion", "confirm_power", "show_app_subtitles"})
@@ -198,7 +198,7 @@ class ApiTests(unittest.TestCase):
         self.client.patch("/api/v1/settings", json={"server": {"data_dir": "/"}}, headers=WRITE)
         self.assertEqual(json.loads(self.config_path.read_text(encoding="utf-8"))["apps"], json.loads(before)["apps"])
 
-    # --- System, Frontend -----------------------------------------------------------------
+    # --- System, frontend -----------------------------------------------------------------
 
     def test_system_status(self) -> None:
         from version import __version__
