@@ -18,6 +18,14 @@ The project targets Debian 13 (Trixie) on x86_64 / amd64 only.
 - System status, restart, and shutdown controls
 - systemd user services for the backend and launcher
 - Debug section for development and test applications
+- Web apps loaded automatically from individual `backend/config/apps/*.cfg` files
+
+## Add applications
+
+Create a `.cfg` file in `backend/config/apps/` to add a web app without changing
+Python or JavaScript code. Each file defines its title, subtitle, icon, color,
+URL, and browser options. See [App Configuration](docs/APP_KONFIGURATION.md)
+for the complete format and examples.
 
 ## Supported platform
 
