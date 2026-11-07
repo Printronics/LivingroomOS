@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!--
-  LivingroomOS – labwc-Konfiguration (Kiosk). UNGETESTET auf echter Hardware, Syntax nach labwc-config(5).
+  LivingroomOS – labwc kiosk configuration. NOT TESTED on physical hardware; syntax follows labwc-config(5).
 
   There is intentionally no <default />: this disables Alt+Tab, Alt+F4, the window menu, and switching to
   virtual consoles. This prevents accidental use, not attackers with physical access (see ARCHITECTURE.md).
