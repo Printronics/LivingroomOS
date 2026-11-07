@@ -226,7 +226,7 @@ class AppLauncher:
         except (NotInstalled, LaunchRefused, OSError):
             return False
 
-    # ---------------------------------------------------------------- Aktionen
+    # ---------------------------------------------------------------- Actions
 
     async def launch(self, app_id: str) -> dict[str, Any]:
         app = self._apps.get(app_id)
