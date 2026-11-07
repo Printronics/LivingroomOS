@@ -204,7 +204,7 @@ class DocumentationTests(unittest.TestCase):
         self.assertTrue({"python3", "python3-fastapi", "python3-uvicorn", "labwc", "greetd"} <= required)
 
     def test_required_project_documents_exist_and_are_not_empty(self) -> None:
-        for name in ("README.md", "INSTALL.md", "ARCHITECTURE.md", "CHANGELOG.md", "docs/SYSTEMABHAENGIGKEITEN.md", "docs/SICHERHEIT.md"):
+        for name in ("README.md", "INSTALL.md", "ARCHITECTURE.md", "CHANGELOG.md", "docs/SYSTEMABHAENGIGKEITEN.md", "docs/SICHERHEIT.md", "docs/APP_KONFIGURATION.md"):
             with self.subTest(file=name):
                 self.assertGreater(len((ROOT / name).read_text(encoding="utf-8").strip()), 200)
 
