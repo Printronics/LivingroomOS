@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Prüft, ob dieses System LivingroomOS auf x86_64 tragen kann.
+"""Checks whether this system can run LivingroomOS on x86_64.
 
-Nur Standardbibliothek, ändert nichts am System, lädt nichts aus dem Netz.
+Standard library only; does not modify the system or download anything.
 
-    python3 tools/check_system.py            # prüft alles
+    python3 tools/check_system.py            # check everything
     python3 tools/check_system.py --config ~/.config/livingroomos/settings.json
 
-Exit-Code 0: alle Pflichtprüfungen bestanden; 1: mindestens eine Pflichtprüfung fehlgeschlagen.
-Hinweise (optional) beeinflussen den Exit-Code nicht.
+Exit code 0: all required checks passed; 1: at least one required check failed.
+Optional notices do not affect the exit code.
 """
 from __future__ import annotations
 
@@ -26,11 +26,11 @@ SUPPORTED_MACHINES = {"x86_64": "Intel/AMD 64 Bit"}
 MIN_PYTHON = (3, 11)
 MIN_KERNEL = (5, 3)
 
-results: list[tuple[str, str, str]] = []  # (Status, Prüfung, Detail); Status: OK | FEHLT | HINWEIS
+results: list[tuple[str, str, str]] = []  # (status, check, detail); status: OK | MISSING | INFO
 
 
 def record(ok: bool, name: str, detail: str = "", required: bool = True) -> None:
-    results.append(("OK" if ok else ("FEHLT" if required else "HINWEIS"), name, detail))
+    results.append(("OK" if ok else ("MISSING" if required else "INFO"), name, detail))
 
 
 def kernel_version() -> tuple[int, int]:
@@ -48,7 +48,7 @@ def is_supported_os(release: dict[str, str]) -> bool:
 
 
 def find_binary(name: str) -> str | None:
-    # Gleiche Verzeichnisse wie trusted_bin_dirs im Backend, nicht der PATH des Benutzers.
+    # Same directories as trusted_bin_dirs in the backend, not the user's PATH.
     for directory in ("/usr/local/bin", "/usr/bin", "/usr/sbin", "/opt"):
         candidate = Path(directory) / name
         if candidate.is_file() and os.access(candidate, os.X_OK):
@@ -58,8 +58,8 @@ def find_binary(name: str) -> str | None:
 
 def check(config_path: Path) -> None:
     machine = platform.machine()
-    record(machine in SUPPORTED_MACHINES, "Architektur", f"{machine} ({SUPPORTED_MACHINES.get(machine, 'nicht getestet')})")
-    record(platform.system() == "Linux", "Betriebssystem", platform.system())
+    record(machine in SUPPORTED_MACHINES, "Architecture", f"{machine} ({SUPPORTED_MACHINES.get(machine, 'not tested')})")
+    record(platform.system() == "Linux", "Operating system", platform.system())
     try:
         os_release = platform.freedesktop_os_release()
     except OSError:
@@ -75,20 +75,20 @@ def check(config_path: Path) -> None:
     record(sys.version_info >= MIN_PYTHON, "Python ≥ 3.11", platform.python_version())
     kernel = kernel_version()
     record(kernel >= MIN_KERNEL, "Linux-Kernel ≥ 5.3 (pidfd)", platform.release())
-    record(hasattr(os, "pidfd_open"), "os.pidfd_open verfügbar")
-    record(hasattr(signal, "pidfd_send_signal"), "signal.pidfd_send_signal verfügbar")
-    record(Path("/proc/self/stat").exists(), "/proc eingehängt")
+    record(hasattr(os, "pidfd_open"), "os.pidfd_open available")
+    record(hasattr(signal, "pidfd_send_signal"), "signal.pidfd_send_signal available")
+    record(Path("/proc/self/stat").exists(), "/proc mounted")
     try:
         import fcntl  # noqa: F401
 
-        record(True, "fcntl.flock verfügbar")
+        record(True, "fcntl.flock available")
     except ImportError:
-        record(False, "fcntl.flock verfügbar")
+        record(False, "fcntl.flock available")
 
     for module, package in (("fastapi", "python3-fastapi"), ("uvicorn", "python3-uvicorn")):
         found = importlib.util.find_spec(module) is not None
         record(found, f"Python-Modul {module}", "" if found else f"installieren: apt install {package}")
-    record(importlib.util.find_spec("httpx") is not None, "Python-Modul httpx (nur für API-Tests)", "apt install python3-httpx", required=False)
+    record(importlib.util.find_spec("httpx") is not None, "Python module httpx (API tests only)", "apt install python3-httpx", required=False)
 
     for binary, package, required in (
         ("google-chrome-stable", "Google Chrome (.deb)", True),
@@ -98,13 +98,13 @@ def check(config_path: Path) -> None:
         ("wlr-randr", "wlr-randr", False),
     ):
         path = find_binary(binary) or shutil.which(binary)
-        record(path is not None, f"Programm {binary}", path or f"apt install {package}", required=required)
+        record(path is not None, f"Executable {binary}", path or f"apt install {package}", required=required)
 
-    record(Path("/run/systemd/system").exists(), "systemd läuft")
+    record(Path("/run/systemd/system").exists(), "systemd is running")
     runtime = os.environ.get("XDG_RUNTIME_DIR")
-    record(bool(runtime), "XDG_RUNTIME_DIR gesetzt", runtime or "nur in einer Anmeldesitzung vorhanden", required=False)
-    record(bool(os.environ.get("WAYLAND_DISPLAY")), "WAYLAND_DISPLAY gesetzt", os.environ.get("WAYLAND_DISPLAY", "nur in der labwc-Sitzung vorhanden"), required=False)
-    record(os.getuid() != 0, "läuft nicht als root", "LivingroomOS gehört unter den Benutzer livingroomos", required=False)
+    record(bool(runtime), "XDG_RUNTIME_DIR is set", runtime or "only available inside a login session", required=False)
+    record(bool(os.environ.get("WAYLAND_DISPLAY")), "WAYLAND_DISPLAY is set", os.environ.get("WAYLAND_DISPLAY", "only available inside the labwc session"), required=False)
+    record(os.getuid() != 0, "not running as root", "LivingroomOS should run as the livingroomos user", required=False)
 
     sys.path.insert(0, str(ROOT / "backend"))
     try:
@@ -114,9 +114,9 @@ def check(config_path: Path) -> None:
 
         store = SettingsStore(config_path)
         launcher = AppLauncher(store, ProcessManager())
-        record(not launcher.problems, "Konfiguration gültig", "; ".join(launcher.problems) or str(config_path))
+        record(not launcher.problems, "Configuration is valid", "; ".join(launcher.problems) or str(config_path))
         for app in launcher.list_apps():
-            record(app["available"], f"App „{app['title']}“ startbereit", "" if app["available"] else "Programm nicht installiert", required=False)
+            record(app["available"], f"App “{app['title']}” ready to launch", "" if app["available"] else "Executable is not installed", required=False)
     except SettingsError as exc:
         record(False, "Konfiguration lesbar", str(exc))
     except ImportError as exc:
@@ -131,8 +131,8 @@ def main() -> int:
     width = max(len(name) for _, name, _ in results)
     for status, name, detail in results:
         print(f"{status:<7} {name:<{width}}  {detail}".rstrip())
-    failed = [name for status, name, _ in results if status == "FEHLT"]
-    print(f"\n{'Alle Pflichtprüfungen bestanden.' if not failed else f'{len(failed)} Pflichtprüfung(en) fehlgeschlagen.'}")
+    failed = [name for status, name, _ in results if status == "MISSING"]
+    print(f"\n{'All required checks passed.' if not failed else f'{len(failed)} required check(s) failed.'}")
     return 1 if failed else 0
 
 
