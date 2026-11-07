@@ -181,7 +181,7 @@ Web applications are configured with one `.cfg` file per app:
 /opt/livingroomos/backend/config/apps/
 ```
 
-Edit or add these files as an administrator. The filename must match the `id` inside the file. See [App Configuration](docs/APP_KONFIGURATION.md) for the format and examples.
+Edit or add these files as an administrator. The filename must match the `id` inside the file. See [App Configuration](docs/APP_CONFIGURATION.md) for the format and examples.
 
 After changing an app configuration, restart the backend from a terminal inside the LivingroomOS graphical session:
 
