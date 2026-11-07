@@ -1,5 +1,5 @@
 # LivingroomOS – greetd: automatically logs in as "livingroomos" at startup and launches labwc.
-# Installation: nach /etc/greetd/config.toml kopieren (siehe INSTALL.md). UNGETESTET auf echter Hardware.
+# Installation: copy to /etc/greetd/config.toml (see INSTALL.md). NOT TESTED on physical hardware.
 
 [terminal]
 vt = 1
