@@ -9,9 +9,9 @@ LivingroomOS is a Linux-based operating system environment designed for living r
 ## Features
 
 - TV-oriented user interface
-- Centralized application management
-- Integration of web-based applications
-- Configurable application settings
+- File-based web-app management: one `.cfg` file per application
+- Automatic discovery of app definitions at backend startup
+- Configurable app title, subtitle, icon, color, URL, and browser options
 - System controls and power management
 - Security-focused system configuration
 - Recovery and maintenance functionality
@@ -27,6 +27,12 @@ The intended target environment includes:
 - Suitable input devices, such as a remote control, keyboard, or mouse
 
 For detailed dependency information, see [System Dependencies](livingroomos/docs/SYSTEMABHAENGIGKEITEN.md).
+
+## Add web applications
+
+Create a file such as `livingroomos/backend/config/apps/netflix.cfg` to add a web app. The backend validates each file and builds the Chrome launch command; no Python or frontend edits are required. The filename must match the `id` in the file. See the [App Configuration Guide](livingroomos/docs/APP_KONFIGURATION.md) for the format, supported fields, examples, and security rules.
+
+The central `settings.json` is now used for server/UI settings and optional legacy or debug entries; the shipped web apps are separate CFG files.
 
 ## Installation
 
@@ -60,7 +66,7 @@ LivingroomOS/
     └── ...
 ```
 
-This is a simplified overview of the main project directories.
+This is a simplified overview of the main project directories. App definitions are stored in `livingroomos/backend/config/apps/*.cfg`.
 
 ## Running Tests
 
@@ -85,6 +91,7 @@ Additional technical information is available in the following documents:
 - [Architecture](livingroomos/ARCHITECTURE.md)
 - [Changelog](livingroomos/CHANGELOG.md)
 - [Security Documentation](livingroomos/docs/SICHERHEIT.md)
+- [App Configuration Guide](livingroomos/docs/APP_KONFIGURATION.md)
 - [System Dependencies](livingroomos/docs/SYSTEMABHAENGIGKEITEN.md)
 
 ## Development Status
