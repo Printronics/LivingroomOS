@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""livingroomosctl – kleines Kommandozeilenwerkzeug für Tastenkürzel und systemd-Units.
+"""livingroomosctl – small command-line utility for keyboard shortcuts and systemd user units.
 
-Spricht ausschließlich per HTTP mit dem LivingroomOS-Backend auf 127.0.0.1 (Port aus
-LIVINGROOMOS_PORT, Standard 8750). Es startet keine Programme und nutzt nur die Standardbibliothek.
+Communicates with the LivingroomOS backend over HTTP only on 127.0.0.1 (port from
+LIVINGROOMOS_PORT, default 8750). It does not start programs and uses only the standard library.
 
-  livingroomosctl home          beendet die laufende App; der Launcher ist wieder sichtbar
+  livingroomosctl home          stops the running app; the launcher becomes visible again
   livingroomosctl status        gibt den Status des Backends als JSON aus
-  livingroomosctl wait [SEK]    wartet (Standard 60 s), bis das Backend bereit ist
+  livingroomosctl wait [SEK]    waits (60 s by default) until the backend is ready
 
-Exit-Codes: 0 Erfolg, 1 Backend nicht erreichbar oder Fehler, 2 falsche Bedienung.
+Exit codes: 0 success, 1 backend unreachable or error, 2 incorrect usage.
 """
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ import time
 import urllib.error
 import urllib.request
 
-# Proxy-Einstellungen der Umgebung dürfen Loopback-Aufrufe nie umleiten.
+# Environment proxy settings must never redirect loopback requests.
 _OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
 
@@ -32,7 +32,7 @@ def call(method: str, path: str, timeout: float = 3.0) -> dict:
         base_url() + path,
         method=method,
         data=b"" if method == "POST" else None,
-        headers={"X-LivingroomOS": "1"},  # Pflicht für schreibende Aufrufe (CSRF-Schutz des Backends)
+        headers={"X-LivingroomOS": "1"},  # required for write requests (backend CSRF protection)
     )
     with _OPENER.open(request, timeout=timeout) as response:
         return json.load(response)
@@ -62,7 +62,7 @@ def main(argv: list[str] | None = None) -> int:
             seconds = float(args[1]) if len(args) == 2 else 60.0
             if wait_ready(seconds):
                 return 0
-            print("livingroomosctl: Backend wurde nicht rechtzeitig bereit.", file=sys.stderr)
+            print("livingroomosctl: Backend did not become ready in time.", file=sys.stderr)
             return 1
         if len(args) != 1:
             print(__doc__, file=sys.stderr)
@@ -71,13 +71,13 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, ensure_ascii=False))
         return 0
     except ValueError:
-        print("livingroomosctl: ungültiger Wert für die Wartezeit.", file=sys.stderr)
+        print("livingroomosctl: Invalid wait duration.", file=sys.stderr)
         return 2
     except urllib.error.HTTPError as exc:
         print(f"livingroomosctl: Backend meldet HTTP {exc.code}.", file=sys.stderr)
         return 1
     except OSError as exc:
-        print(f"livingroomosctl: Backend nicht erreichbar: {exc}", file=sys.stderr)
+        print(f"livingroomosctl: Backend is not reachable: {exc}", file=sys.stderr)
         return 1
 
 
