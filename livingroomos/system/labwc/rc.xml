@@ -2,8 +2,8 @@
 <!--
   LivingroomOS – labwc-Konfiguration (Kiosk). UNGETESTET auf echter Hardware, Syntax nach labwc-config(5).
 
-  Es gibt bewusst kein <default />: Damit entfallen Alt+Tab, Alt+F4, das Fenstermenü und der Wechsel auf
-  virtuelle Konsolen. Das schützt vor Fehlbedienung, nicht vor Angreifern am Gerät (siehe ARCHITECTURE.md).
+  There is intentionally no <default />: this disables Alt+Tab, Alt+F4, the window menu, and switching to
+  virtual consoles. This prevents accidental use, not attackers with physical access (see ARCHITECTURE.md).
   Vollbild erzwingen die Apps selbst (Kiosk-Option bzw. Vollbild-Option).
 -->
 <labwc_config>
@@ -14,11 +14,11 @@
   </windowRules>
 
   <keyboard>
-    <!-- Home-Taste der Fernbedienung: laufende App beenden, Launcher wird wieder sichtbar. -->
+    <!-- Remote-control Home button: stop the running app and show the launcher again. -->
     <keybind key="XF86HomePage">
       <action name="Execute" command="/opt/livingroomos/system/bin/livingroomosctl home" />
     </keybind>
-    <!-- Notfall an der Tastatur, falls die Fernbedienung keine Home-Taste sendet. -->
+    <!-- Keyboard fallback if the remote control does not send a Home key. -->
     <keybind key="C-A-Home">
       <action name="Execute" command="/opt/livingroomos/system/bin/livingroomosctl home" />
     </keybind>
