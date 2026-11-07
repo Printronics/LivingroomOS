@@ -14,12 +14,12 @@ const IDLE_STATUS = Object.freeze({ state: "idle", app_id: null, last_exit: null
 const HEX_COLOR = /^#[0-9a-f]{6}$/i;
 
 const SETTINGS = [
-  { key: "clock_24h", label: "Uhrzeit-Format", values: [[true, "24 Stunden"], [false, "12 Stunden"]], tab: "general" },
-  { key: "show_clock", label: "Uhr anzeigen", values: [[true, "Ja"], [false, "Nein"]], tab: "general" },
+  { key: "clock_24h", label: "Time format", values: [[true, "24-hour"], [false, "12-hour"]], tab: "general" },
+  { key: "show_clock", label: "Show clock", values: [[true, "Yes"], [false, "No"]], tab: "general" },
   { key: "tile_size", label: "Tile size", values: [["normal", "Normal"], ["large", "Large"]], tab: "general" },
-  { key: "show_app_subtitles", label: "App-Beschreibungen anzeigen", values: [[true, "Ja"], [false, "Nein"]], tab: "general" },
-  { key: "reduce_motion", label: "Bewegungen reduzieren", values: [[true, "Ja"], [false, "Nein"]], tab: "general" },
-  { key: "confirm_power", label: "Confirm before power off", values: [[true, "Ja"], [false, "Nein"]], tab: "system" },
+  { key: "show_app_subtitles", label: "Show app descriptions", values: [[true, "Yes"], [false, "No"]], tab: "general" },
+  { key: "reduce_motion", label: "Reduce motion", values: [[true, "Yes"], [false, "No"]], tab: "general" },
+  { key: "confirm_power", label: "Confirm before power off", values: [[true, "Yes"], [false, "No"]], tab: "system" },
 ];
 
 const state = {
@@ -140,7 +140,7 @@ function updateTileStates() {
 function renderSettings() {
   const rows = [];
 
-  // Einstellungs-Tabs
+  // Settings tabs
   for (const [key, label] of [
     ["general", "General"],
     ["system", "System"],
@@ -169,7 +169,7 @@ function renderSettings() {
     )));
   }
 
-  // Generale und System-Settings
+  // General and system settings
   if (state.settingsTab === "general" || state.settingsTab === "system") {
     for (const setting of SETTINGS.filter(
       (item) => item.tab === state.settingsTab
@@ -195,7 +195,7 @@ function renderSettings() {
       )));
     }
   } else {
-    // Debug-Settings
+    // Debug settings
     rows.push(h("li", {}, h("p", {
       class: "row__value",
       text: "Test apps – diagnostics only"
@@ -218,7 +218,7 @@ function renderSettings() {
         h("span", { text: `${app.title} · ${app.subtitle}` }),
         h("span", {
           class: "row__value",
-          text: "Starten"
+          text: "Launch"
         })
       )));
     }
@@ -236,10 +236,10 @@ function renderSettings() {
     )));
   }
 
-  // Systemaktionen
+  // System actions
   if (state.settingsTab === "system") {
     for (const [action, label] of [
-      ["restart", "PC neu starten"],
+      ["restart", "Restart PC"],
       ["shutdown", "Shut down PC"]
     ]) {
       rows.push(h("li", {}, h("button", {
@@ -290,11 +290,11 @@ function renderSettings() {
     h("span", { text: "Back" })
   )));
 
-  // Liste anzeigen
+  // Display list
   const list = $("settings-list");
   list.replaceChildren(...rows);
 
-  // Einstellungswerte aktualisieren
+  // Update setting values
   updateSettingValues();
 }
 
@@ -345,7 +345,7 @@ async function requestPower(action) {
       closeDialog();
       await api.power(action);
       showDialog({ key: `power:${action}`, spinner: true, title: restart ? "Preparing to restart" : "Shutting down system", text: "The system is carrying out the action.", actions: [] });
-    } catch (err) { toast(`Systemaktion fehlgeschlagen: ${err.message}`); }
+    } catch (err) { toast(`System action failed: ${err.message}`); }
   };
   if (state.ui.confirm_power) showDialog({
     key: `confirm-power:${action}`, tone: "error",
@@ -365,11 +365,11 @@ function applyUi() {
 }
 
 function updateClock() {
-  const fmt = new Intl.DateTimeFormat("de-DE", { weekday: "short", hour: "2-digit", minute: "2-digit", hour12: !state.ui.clock_24h });
+  const fmt = new Intl.DateTimeFormat("en-GB", { weekday: "short", hour: "2-digit", minute: "2-digit", hour12: !state.ui.clock_24h });
   $("clock").textContent = fmt.format(new Date());
 }
 
-/* ------------------------------------------------------------------- Ansichten */
+/* ------------------------------------------------------------------- Views */
 
 function showView(name) {
   state.view = name;
@@ -379,7 +379,7 @@ function showView(name) {
   if (!state.dialog) nav.setScope(viewEl());
 }
 
-/* --------------------------------------------------------------------- Dialoge */
+/* --------------------------------------------------------------------- Dialogs */
 
 /** Displays a modal dialog. The first action is selected by default. */
 function showDialog({ key, title, text = "", tone = "info", spinner = false, actions = [], onBack }) {
@@ -415,7 +415,7 @@ function showAbout() {
     text: "LivingroomOS is free software licensed under the GNU Affero General Public License version 3 (AGPL-3.0). The full license text and source code are available through the links below.",
     actions: [
       {
-        label: "AGPL-3.0 Lizenztext",
+        label: "AGPL-3.0 license text",
         run: () => {
           window.open(
             "https://github.com/Printronics/LivingroomOS/blob/main/LICENSE",
@@ -472,7 +472,7 @@ function onLaunchError(err, app) {
     text: err.message,
     actions: notInstalled
       ? [{ label: "OK", run: closeDialog }]
-      : [{ label: "Erneut versuchen", run: () => { closeDialog(); launchApp(app); } }, { label: "Cancel", run: closeDialog }],
+      : [{ label: "Try again", run: () => { closeDialog(); launchApp(app); } }, { label: "Cancel", run: closeDialog }],
     onBack: closeDialog,
   });
 }
@@ -530,9 +530,9 @@ function onExit(exit) {
   const app = appById(exit.app_id);
   const name = app?.title ?? exit.app_id;
   if (exit.reason === "crashed" || exit.reason === "start_failed") {
-    const detail = exit.signal ? `Signal ${exit.signal}` : `Exit-Code ${exit.code}`;
+    const detail = exit.signal ? `Signal ${exit.signal}` : `Exit code ${exit.code}`;
     const actions = [{ label: "OK", run: closeDialog }];
-    if (app) actions.unshift({ label: "Erneut starten", run: () => { closeDialog(); launchApp(app); } });
+    if (app) actions.unshift({ label: "Restart", run: () => { closeDialog(); launchApp(app); } });
     showDialog({
       key: `exit:${exit.seq}`,
       tone: "error",
@@ -563,7 +563,7 @@ function setOnline(flag, err) {
   state.online = flag;
   const pill = $("conn");
   pill.dataset.state = flag ? "online" : "offline";
-  pill.textContent = flag ? "Verbunden" : "Offline";
+  pill.textContent = flag ? "Connected" : "Offline";
 
   if (!flag && state.dialog?.key !== "offline") {
     const backendError = err instanceof ApiError && !err.network;
@@ -573,7 +573,7 @@ function setOnline(flag, err) {
       spinner: true,
       title: "Backend unavailable",
       text: backendError ? `The backend reports an error: ${err.message}` : "LivingroomOS will reconnect automatically …",
-      actions: [{ label: "Jetzt erneut versuchen", run: retryNow }],
+      actions: [{ label: "Retry now", run: retryNow }],
       onBack: () => {}, // cannot be dismissed
     });
   } else if (flag && state.dialog?.key === "offline") {
