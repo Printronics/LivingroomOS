@@ -11,10 +11,10 @@
   <script type="module" src="demo.js"></script>
 </head>
 <body>
-  <!-- Ohne Backend nutzbar:  cd frontend && python3 -m http.server 8000  →  /dev/navigation-demo.html -->
+  <!-- Can be used without the backend: cd frontend && python3 -m http.server 8000 -> /dev/navigation-demo.html -->
   <div class="shell demo">
     <header class="topbar">
-      <h1 class="brand">Navigations<span>test</span></h1>
+      <h1 class="brand">Navigation <span>test</span></h1>
       <div class="topbar__right"><span class="clock" id="count">0 Aktionen</span></div>
     </header>
 
@@ -27,14 +27,14 @@
 
     <footer class="demo__keys" aria-live="off">
       <div>Letzte Taste: <b id="k-key">–</b> · code <b id="k-code">–</b> · keyCode <b id="k-keycode">–</b> → Aktion <b id="k-action">–</b></div>
-      <div>Unbekannte Taste: <b id="k-unknown">–</b> <span class="demo__hint">(für die Fernbedienung: Wert mit remote.bind(…) zuordnen)</span></div>
+      <div>Unknown key: <b id="k-unknown">–</b> <span class="demo__hint">(for the remote control: map the value with remote.bind(…))</span></div>
     </footer>
   </div>
 
   <div id="overlay" class="overlay" hidden>
     <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-title">
       <h2 id="dlg-title" class="dialog__title">Dialog</h2>
-      <p class="dialog__text">Enter doppelt schnell gedrückt bestätigt nicht sofort „Schließen“.</p>
+      <p class="dialog__text">Pressing Enter twice quickly does not immediately activate “Close”.</p>
       <div id="dlg-actions" class="dialog__actions"></div>
     </div>
   </div>
