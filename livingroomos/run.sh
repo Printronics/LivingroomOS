@@ -7,4 +7,5 @@ if [ -f ../.venv/bin/activate ]; then
   # shellcheck disable=SC1091
   source ../.venv/bin/activate
 fi
-exec python3 -m uvicorn main:app --host 127.0.0.1 --port "${LIVINGROOMOS_PORT:-8750}"
+# Standard-asyncio verwenden: uvloop unterstützt das benötigte subprocess-Argument umask nicht.
+exec python3 -m uvicorn main:app --loop asyncio --host 127.0.0.1 --port "${LIVINGROOMOS_PORT:-8750}"
