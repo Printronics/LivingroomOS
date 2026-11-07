@@ -1,8 +1,8 @@
-"""Übersetzt App-IDs in geprüfte Startbefehle.
+"""Converts app IDs into validated launch commands.
 
-Konzept: docs/SICHERHEIT.md. Das Frontend sendet nur eine App-ID. Programm, Argumente und
-Umgebung stammen aus den administrativen Konfigurationsdateien und werden hier mehrfach geprüft:
-beim Laden (Form, Schalter, Platzhalter), beim Start (Pfad, Besitzer, Rechte, Profilordner).
+Security model: docs/SECURITY.md. The frontend sends only an app ID. The executable, arguments, and
+environment come from administrator-managed configuration files and are validated here several times:
+when loading (format, flags, placeholders) and when launching (path, owner, permissions, profile directory).
 Es gibt keine Shell.
 """
 from __future__ import annotations
@@ -36,16 +36,16 @@ PLACEHOLDER_RE = re.compile(r"\{([A-Za-z_]+)\}")
 ALLOWED_PLACEHOLDERS = {"python", "profile_dir"}
 MAX_ARG_LEN = 2048
 
-# Umgebungsvariablen, die aus dem Backend durchgereicht werden (alles andere wird verworfen).
+# Environment variables passed through from the backend (everything else is discarded).
 ENV_PASSTHROUGH = (
     "HOME", "USER", "LOGNAME", "LANG", "LC_ALL", "TZ",
     "XDG_RUNTIME_DIR", "XDG_SESSION_TYPE", "XDG_SESSION_ID", "XDG_DATA_DIRS", "XDG_CONFIG_DIRS",
     "WAYLAND_DISPLAY", "DISPLAY", "DBUS_SESSION_BUS_ADDRESS", "PULSE_SERVER", "PIPEWIRE_RUNTIME_DIR",
 )
-# Diese Variablen darf auch die Konfiguration nicht setzen (Bibliotheks-/Interpreter-Einschleusung).
+# The configuration must not set these variables either (library/interpreter injection).
 FORBIDDEN_ENV_RE = re.compile(r"^(PATH|HOME|SHELL|IFS|ENV|BASH_ENV|GCONV_PATH|LOCPATH|NLSPATH|LD_.*|PYTHON.*)$")
 
-# Schalter, die Schutzmechanismen von Browsern abschalten oder Fernsteuerung öffnen.
+# Flags that disable browser security mechanisms or enable remote control.
 FORBIDDEN_FLAGS = {
     "--no-sandbox", "--disable-setuid-sandbox", "--disable-web-security",
     "--disable-site-isolation-trials", "--allow-running-insecure-content",
@@ -71,7 +71,7 @@ class NotInstalled(Exception):
 
 
 class LaunchRefused(LaunchFailed):
-    """Start aus Sicherheitsgründen abgelehnt. Die Meldung nennt den Grund für den Administrator."""
+    """Launch rejected for security reasons. The message gives the administrator the reason."""
 
 
 @dataclass(frozen=True)
@@ -96,10 +96,10 @@ def _is_browser(command0: str) -> bool:
 
 
 def _check_args(command: list[str]) -> None:
-    """Formale Prüfung einer Befehlszeile (gilt auch für den Rückkehr-Befehl)."""
+    """Structural validation of a command line (also applies to the return-to-launcher command)."""
     for part in command:
         if "\0" in part or len(part) > MAX_ARG_LEN:
-            raise ValueError("Argument enthält NUL oder ist zu lang")
+            raise ValueError("Argument contains NUL or is too long")
         unknown = {m for m in PLACEHOLDER_RE.findall(part) if m not in ALLOWED_PLACEHOLDERS}
         if unknown:
             raise ValueError(f"unbekannter Platzhalter: {{{sorted(unknown)[0]}}}")
@@ -108,42 +108,42 @@ def _check_args(command: list[str]) -> None:
 
 
 def parse_apps(raw_apps: list[Any]) -> tuple[dict[str, AppDefinition], list[str]]:
-    """Prüft die App-Liste. Ungültige Einträge werden übersprungen, nicht fatal."""
+    """Validates the app list. Invalid entries are skipped and are not fatal."""
     apps: dict[str, AppDefinition] = {}
     problems: list[str] = []
     for index, raw in enumerate(raw_apps):
         try:
             if not isinstance(raw, dict):
-                raise ValueError("Eintrag ist kein Objekt")
+                raise ValueError("Entry is not an object")
             app_id = raw.get("id")
             if not isinstance(app_id, str) or not APP_ID_RE.match(app_id):
-                raise ValueError("id fehlt oder hat ein ungültiges Format")
+                raise ValueError("Missing ID or invalid ID format")
             if app_id in apps:
                 raise ValueError("id doppelt vergeben")
             title = raw.get("title")
             if not isinstance(title, str) or not title.strip():
-                raise ValueError("title fehlt")
+                raise ValueError("Missing title")
             command = raw.get("command")
             if (
                 not isinstance(command, list)
                 or not command
                 or not all(isinstance(part, str) and part for part in command)
             ):
-                raise ValueError("command muss eine nicht leere Liste von Texten sein")
+                raise ValueError("command must be a non-empty list of strings")
             _check_args(command)
 
             if _is_browser(command[0]) and not any("{profile_dir}" in part for part in command[1:]):
-                raise ValueError("Browser brauchen ein eigenes Profil: {profile_dir} im command fehlt")
+                raise ValueError("Browsers require a separate profile: {profile_dir} is missing from command")
 
             env_raw = raw.get("env", {})
             if not isinstance(env_raw, dict):
-                raise ValueError("env muss ein Objekt sein")
+                raise ValueError("env must be an object")
             env: list[tuple[str, str]] = []
             for key, value in env_raw.items():
                 if not ENV_KEY_RE.match(key) or FORBIDDEN_ENV_RE.match(key):
-                    raise ValueError(f"Umgebungsvariable nicht erlaubt: {key}")
+                    raise ValueError(f"Environment variable is not allowed: {key}")
                 if not isinstance(value, str) or "\0" in value:
-                    raise ValueError(f"Wert von {key} ist ungültig")
+                    raise ValueError(f"Invalid value for {key}")
                 env.append((key, value))
 
             color = raw.get("color", "#3a4256")
@@ -163,7 +163,7 @@ def parse_apps(raw_apps: list[Any]) -> tuple[dict[str, AppDefinition], list[str]
             )
         except ValueError as exc:
             problems.append(f"apps[{index}]: {exc}")
-            log.warning("App-Eintrag %d übersprungen: %s", index, exc)
+            log.warning("Skipped app entry %d: %s", index, exc)
     return apps, problems
 
 
@@ -199,10 +199,10 @@ class AppLauncher:
 
     def title(self, app_id: str | None) -> str:
         app = self._apps.get(app_id or "")
-        return app.title if app else "Anwendung"
+        return app.title if app else "Application"
 
     def list_apps(self) -> list[dict[str, Any]]:
-        """Öffentliche Sicht: bewusst ohne Befehlszeile und ohne Pfade."""
+        """Public representation: intentionally excludes the command line and paths."""
         return [
             {
                 "id": a.id,
@@ -238,16 +238,16 @@ class AppLauncher:
         try:
             spec = self._prepare(app)
         except LaunchRefused as exc:
-            log.warning("Start von %s abgelehnt: %s", app_id, exc)
+            log.warning("Launch of %s rejected: %s", app_id, exc)
             raise
         except OSError as exc:
-            log.error("Start von %s: Dateisystemfehler: %s", app_id, exc)
-            raise LaunchFailed("Start nicht möglich: Dateisystemfehler.") from exc
+            log.error("Launch of %s: filesystem error: %s", app_id, exc)
+            raise LaunchFailed("Cannot launch: filesystem error.") from exc
         await self._manager.start(spec)  # ProcessBusy → API
         return self._manager.status()
 
     async def stop(self, app_id: str | None = None) -> dict[str, Any]:
-        """Beendet die aktive App. Mit app_id nur, wenn genau diese App aktiv ist."""
+        """Stops the active app. If app_id is provided, it stops the app only when that exact app is active."""
         current = self._manager.status()
         if app_id is not None and current["app_id"] != app_id:
             return current
@@ -289,10 +289,10 @@ class AppLauncher:
         if app is not None:
             env.update(dict(app.env))
 
-        # Chrome/Chromium starten für jede App einen eigenen Prozess samt Crashpad.
+        # Chrome/Chromium starts a separate process, including Crashpad, for each app.
         # Eine isolierte, beschreibbare XDG-Umgebung verhindert, dass Kindprozesse
-        # auf nicht vorhandene oder fremde Benutzerpfade zurückfallen. Die Pfade
-        # liegen zentral unter data_dir und sind unabhängig vom Backend-Startkontext.
+        # fall back to missing or foreign user paths. The paths
+        # are stored centrally under data_dir and are independent of the backend launch context.
         config_home = ensure_private_dir(self._data_dir / "chrome-config")
         cache_home = ensure_private_dir(self._data_dir / "chrome-cache")
         env["XDG_CONFIG_HOME"] = str(config_home)
@@ -300,15 +300,15 @@ class AppLauncher:
         return env
 
     def _resolve_executable(self, name: str) -> Path:
-        """Liefert den geprüften echten Pfad oder wirft NotInstalled bzw. LaunchRefused."""
+        """Returns the validated real path or raises NotInstalled or LaunchRefused."""
         is_python = name == "{python}"
         if is_python:
             candidate = Path(sys.executable)
         elif os.path.isabs(name):
             candidate = Path(name)
         elif "/" in name:
-            raise LaunchRefused("Relative Programmpfade sind nicht erlaubt.")
-        else:  # nur in vertrauenswürdigen Verzeichnissen suchen, nie im PATH des Benutzers
+            raise LaunchRefused("Relative executable paths are not allowed.")
+        else:  # search trusted directories only, never the user's PATH
             found = next(
                 (Path(d) / name for d in self._bin_dirs if os.path.isfile(Path(d) / name) and os.access(Path(d) / name, os.X_OK)),
                 None,
@@ -321,7 +321,7 @@ class AppLauncher:
         if not real.is_file() or not os.access(real, os.X_OK):
             raise NotInstalled(name)
         if not is_python and not any(real.is_relative_to(d) for d in self._trusted_real):
-            raise LaunchRefused(f"{real} liegt nicht in einem vertrauenswürdigen Verzeichnis.")
+            raise LaunchRefused(f"{real} is not inside a trusted directory.")
         self._check_permissions(real)
         return real
 
@@ -330,33 +330,33 @@ class AppLauncher:
         uid = os.getuid()
         st = real.stat()
         if st.st_uid not in (0, uid):
-            raise LaunchRefused(f"{real} gehört einem fremden Benutzer.")
+            raise LaunchRefused(f"{real} is owned by a different user.")
         if st.st_mode & (stat.S_IWGRP | stat.S_IWOTH):
-            raise LaunchRefused(f"{real} ist für Gruppe oder Andere beschreibbar.")
+            raise LaunchRefused(f"{real} is writable by group or others.")
         parent = real.parent
         while True:
             parent_stat = parent.stat()
             if parent_stat.st_uid not in (0, uid):
-                raise LaunchRefused(f"Das Verzeichnis {parent} gehört einem fremden Benutzer.")
+                raise LaunchRefused(f"Das Verzeichnis {parent} is owned by a different user.")
             if parent_stat.st_mode & stat.S_IWGRP:
-                raise LaunchRefused(f"Das Verzeichnis {parent} ist für die Gruppe beschreibbar.")
+                raise LaunchRefused(f"Directory {parent} is group-writable.")
             if parent_stat.st_mode & stat.S_IWOTH and not parent_stat.st_mode & stat.S_ISVTX:
-                raise LaunchRefused(f"Das Verzeichnis {parent} ist für Andere beschreibbar.")
+                raise LaunchRefused(f"Directory {parent} is writable by others.")
             if parent.parent == parent:
                 break
             parent = parent.parent
 
-    # ----------------------------------------------------- Rückkehr zum Launcher
+    # ----------------------------------------------------- Return to launcher
 
     def _parse_return_command(self, raw: Any) -> list[str] | None:
         if raw in (None, [], ""):
             return None
         try:
             if not isinstance(raw, list) or not all(isinstance(p, str) and p for p in raw):
-                raise ValueError("muss eine Liste von Texten sein")
+                raise ValueError("must be a list of strings")
             _check_args(raw)
             if any(PLACEHOLDER_RE.search(p) for p in raw):
-                raise ValueError("Platzhalter sind hier nicht erlaubt")
+                raise ValueError("Placeholders are not allowed here")
         except ValueError as exc:
             self._return_problems.append(f"server.return_to_launcher_command: {exc}")
             log.warning("return_to_launcher_command ignoriert: %s", exc)
@@ -364,7 +364,7 @@ class AppLauncher:
         return list(raw)
 
     async def _on_exit(self, info: ExitInfo) -> None:
-        """Nach jedem Ende: optional den Fokus auf den Launcher zurückholen (z. B. per wlrctl)."""
+        """After each app exits: optionally return focus to the launcher (for example, using wlrctl)."""
         if not self._return_cmd:
             return
         try:
@@ -382,6 +382,6 @@ class AppLauncher:
             except TimeoutError:
                 proc.kill()
                 await proc.wait()
-                log.warning("Rückkehr-Befehl hing und wurde beendet")
+                log.warning("Return-to-launcher command timed out and was terminated")
         except (NotInstalled, LaunchRefused, OSError) as exc:
-            log.warning("Rückkehr zum Launcher nicht möglich: %s", exc)
+            log.warning("Cannot return focus to the launcher: %s", exc)
