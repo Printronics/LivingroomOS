@@ -1,6 +1,6 @@
-/* LivingroomOS – Oberfläche: Zustand, Darstellung und Ablauf.
-   Das Backend ist die einzige Quelle der Wahrheit für laufende Prozesse; dieses Skript
-   zeigt nur an, was /api/v1/apps/status meldet, und sendet Absichten. */
+/* LivingroomOS – interface state, rendering, and flow.
+   The backend is the single source of truth for running processes; this script
+   only displays what /api/v1/apps/status reports and sends user intentions. */
 
 import { api, ApiError } from "./api.js";
 import { Navigator } from "./navigation.js";
@@ -16,10 +16,10 @@ const HEX_COLOR = /^#[0-9a-f]{6}$/i;
 const SETTINGS = [
   { key: "clock_24h", label: "Uhrzeit-Format", values: [[true, "24 Stunden"], [false, "12 Stunden"]], tab: "general" },
   { key: "show_clock", label: "Uhr anzeigen", values: [[true, "Ja"], [false, "Nein"]], tab: "general" },
-  { key: "tile_size", label: "Kachelgröße", values: [["normal", "Normal"], ["large", "Groß"]], tab: "general" },
+  { key: "tile_size", label: "Tile size", values: [["normal", "Normal"], ["large", "Large"]], tab: "general" },
   { key: "show_app_subtitles", label: "App-Beschreibungen anzeigen", values: [[true, "Ja"], [false, "Nein"]], tab: "general" },
   { key: "reduce_motion", label: "Bewegungen reduzieren", values: [[true, "Ja"], [false, "Nein"]], tab: "general" },
-  { key: "confirm_power", label: "Rückfrage vor Ausschalten", values: [[true, "Ja"], [false, "Nein"]], tab: "system" },
+  { key: "confirm_power", label: "Confirm before power off", values: [[true, "Ja"], [false, "Nein"]], tab: "system" },
 ];
 
 const state = {
@@ -108,7 +108,7 @@ function settingsTile() {
       on: { click: () => showView("settings") },
     },
     icon,
-    h("span", {}, h("span", { class: "tile__title", text: "Einstellungen" }), h("span", { class: "tile__sub", text: "System, Anzeige und Diagnose" })),
+    h("span", {}, h("span", { class: "tile__title", text: "Settings" }), h("span", { class: "tile__sub", text: "System, display, and diagnostics" })),
   );
   return h("li", { class: "tiles__item" }, tile);
 }
@@ -126,8 +126,8 @@ function updateTileStates() {
     if (!tile) continue;
     const active = activeId === app.id && st !== "idle";
     let label = "";
-    if (active) label = { starting: "Startet …", running: "Läuft", stopping: "Wird beendet …" }[st] ?? "";
-    else if (!app.available) label = "Nicht installiert";
+    if (active) label = { starting: "Starting …", running: "Running", stopping: "Stopping …" }[st] ?? "";
+    else if (!app.available) label = "Not installed";
     const badge = tile.querySelector('[data-role="badge"]');
     badge.textContent = label;
     badge.hidden = !label;
@@ -136,7 +136,7 @@ function updateTileStates() {
   }
 }
 
-/* ------------------------------------------------------------ Einstellungen */
+/* ------------------------------------------------------------ Settings */
 function renderSettings() {
   const rows = [];
 
@@ -164,12 +164,12 @@ function renderSettings() {
       h("span", { text: label }),
       h("span", {
         class: "row__value",
-        text: state.settingsTab === key ? "Aktiv" : "Öffnen"
+        text: state.settingsTab === key ? "Active" : "Open"
       })
     )));
   }
 
-  // Allgemeine und System-Einstellungen
+  // Allgemeine und System-Settings
   if (state.settingsTab === "general" || state.settingsTab === "system") {
     for (const setting of SETTINGS.filter(
       (item) => item.tab === state.settingsTab
@@ -195,10 +195,10 @@ function renderSettings() {
       )));
     }
   } else {
-    // Debug-Einstellungen
+    // Debug-Settings
     rows.push(h("li", {}, h("p", {
       class: "row__value",
-      text: "Testanwendungen – nur für Diagnosezwecke"
+      text: "Test apps – diagnostics only"
     })));
 
     for (const app of state.apps.filter(
@@ -232,7 +232,7 @@ function renderSettings() {
       },
       on: { click: stopApp }
     },
-      h("span", { text: "Laufende Test-App beenden" })
+      h("span", { text: "Stop running test app" })
     )));
   }
 
@@ -240,7 +240,7 @@ function renderSettings() {
   if (state.settingsTab === "system") {
     for (const [action, label] of [
       ["restart", "PC neu starten"],
-      ["shutdown", "PC herunterfahren"]
+      ["shutdown", "Shut down PC"]
     ]) {
       rows.push(h("li", {}, h("button", {
         class: "row",
@@ -258,7 +258,7 @@ function renderSettings() {
     }
   }
 
-  // Lizenz- und Projektinformationen
+  // License and project information
   rows.push(h("li", {}, h("button", {
     class: "row",
     attrs: {
@@ -268,14 +268,14 @@ function renderSettings() {
     },
     on: { click: showAbout }
   },
-    h("span", { text: "Über LivingroomOS" }),
+    h("span", { text: "About LivingroomOS" }),
     h("span", {
       class: "row__value",
-      text: "Lizenz und Quellcode"
+      text: "License and source code"
     })
   )));
 
-  // Zurück-Schaltfläche
+  // Back button
   rows.push(h("li", {}, h("button", {
     class: "row",
     attrs: {
@@ -287,7 +287,7 @@ function renderSettings() {
       click: () => showView("home")
     }
   },
-    h("span", { text: "Zurück" })
+    h("span", { text: "Back" })
   )));
 
   // Liste anzeigen
@@ -321,7 +321,7 @@ async function cycleSetting(key, step) {
   const previous = state.ui[key];
   const ticket = ++saveSeq;
 
-  state.ui[key] = next; // sofort anzeigen, bei Fehler zurücknehmen
+  state.ui[key] = next; // update immediately; revert if saving fails
   applyUi();
   updateSettingValues();
   // Keep PATCH requests in key-press order so an older write cannot overwrite a newer value.
@@ -332,7 +332,7 @@ async function cycleSetting(key, step) {
     if (ticket === saveSeq) state.ui = saved; // only the latest response updates the UI
   } catch (err) {
     if (ticket === saveSeq) state.ui[key] = previous;
-    toast(err.network ? "Backend nicht erreichbar – Einstellung nicht gespeichert." : `Speichern fehlgeschlagen: ${err.message}`);
+    toast(err.network ? "Backend unavailable – setting was not saved." : `Saving failed: ${err.message}`);
   }
   applyUi();
   updateSettingValues();
@@ -344,14 +344,14 @@ async function requestPower(action) {
     try {
       closeDialog();
       await api.power(action);
-      showDialog({ key: `power:${action}`, spinner: true, title: restart ? "Neustart wird vorbereitet" : "System wird heruntergefahren", text: "Der Rechner führt die Aktion aus.", actions: [] });
+      showDialog({ key: `power:${action}`, spinner: true, title: restart ? "Preparing to restart" : "Shutting down system", text: "The system is carrying out the action.", actions: [] });
     } catch (err) { toast(`Systemaktion fehlgeschlagen: ${err.message}`); }
   };
   if (state.ui.confirm_power) showDialog({
     key: `confirm-power:${action}`, tone: "error",
-    title: restart ? "PC neu starten?" : "PC herunterfahren?",
-    text: "Nicht gespeicherte Arbeit in anderen Anwendungen kann verloren gehen.",
-    actions: [{ label: "Abbrechen", run: closeDialog }, { label: restart ? "Neu starten" : "Herunterfahren", run: perform }],
+    title: restart ? "Restart PC?" : "Shut down PC?",
+    text: "Unsaved work in other applications may be lost.",
+    actions: [{ label: "Cancel", run: closeDialog }, { label: restart ? "Restart" : "Shut down", run: perform }],
     onBack: closeDialog,
   });
   else await perform();
@@ -381,7 +381,7 @@ function showView(name) {
 
 /* --------------------------------------------------------------------- Dialoge */
 
-/** Zeigt einen modalen Dialog. Die erste Aktion ist vorgewählt. */
+/** Displays a modal dialog. The first action is selected by default. */
 function showDialog({ key, title, text = "", tone = "info", spinner = false, actions = [], onBack }) {
   if (state.dialog?.key === key) return;
   state.dialog = { key, onBack };
@@ -411,8 +411,8 @@ function closeDialog() {
 function showAbout() {
   showDialog({
     key: "about-livingroomos",
-    title: "Über LivingroomOS",
-    text: "LivingroomOS ist freie Software unter der GNU Affero General Public License Version 3 (AGPL-3.0). Der vollständige Lizenztext und der Quellcode sind über die folgenden Links erreichbar.",
+    title: "About LivingroomOS",
+    text: "LivingroomOS ist freie Software unter der GNU Affero General Public License Version 3 (AGPL-3.0). The full license text and source code are available through the links below.",
     actions: [
       {
         label: "AGPL-3.0 Lizenztext",
@@ -435,7 +435,7 @@ function showAbout() {
         }
       },
       {
-        label: "Schließen",
+        label: "Close",
         run: closeDialog
       }
     ],
@@ -468,11 +468,11 @@ function onLaunchError(err, app) {
   showDialog({
     key: `launch-error:${app.id}`,
     tone: "error",
-    title: notInstalled ? `${app.title} ist nicht installiert` : `${app.title} konnte nicht gestartet werden`,
+    title: notInstalled ? `${app.title} is not installed` : `${app.title} could not be started`,
     text: err.message,
     actions: notInstalled
       ? [{ label: "OK", run: closeDialog }]
-      : [{ label: "Erneut versuchen", run: () => { closeDialog(); launchApp(app); } }, { label: "Abbrechen", run: closeDialog }],
+      : [{ label: "Erneut versuchen", run: () => { closeDialog(); launchApp(app); } }, { label: "Cancel", run: closeDialog }],
     onBack: closeDialog,
   });
 }
@@ -482,11 +482,11 @@ async function stopApp() {
     applyStatus(await api.stop());
   } catch (err) {
     if (err.network) return setOnline(false, err);
-    toast(`Beenden fehlgeschlagen: ${err.message}`);
+    toast(`Failed to stop: ${err.message}`);
   }
 }
 
-/** Übernimmt den Status vom Backend und reagiert nur auf Änderungen. */
+/** Applies backend status and reacts only to changes. */
 function applyStatus(next, { force = false } = {}) {
   const prev = state.status;
   state.status = next;
@@ -494,9 +494,9 @@ function applyStatus(next, { force = false } = {}) {
   if (force || prev.state !== next.state || prev.app_id !== next.app_id) onStatusChange(next);
 
   const exit = next.last_exit;
-  state.seenExit = Math.min(state.seenExit, exit?.seq ?? 0); // Backend-Neustart setzt den Zähler zurück
+  state.seenExit = Math.min(state.seenExit, exit?.seq ?? 0); // A backend restart resets the counter
   if (state.firstStatus) {
-    state.seenExit = exit?.seq ?? 0; // alte Ereignisse beim Laden nicht erneut melden
+    state.seenExit = exit?.seq ?? 0; // Do not report old events again when loading
     state.firstStatus = false;
   } else if (exit && exit.seq > state.seenExit) {
     state.seenExit = exit.seq;
@@ -505,18 +505,18 @@ function applyStatus(next, { force = false } = {}) {
 }
 
 function onStatusChange(next) {
-  const name = appById(next.app_id)?.title ?? "Die Anwendung";
+  const name = appById(next.app_id)?.title ?? "The application";
   const key = `${next.state}:${next.app_id}`;
   switch (next.state) {
     case "starting":
-      return showDialog({ key, spinner: true, title: `${name} wird gestartet …`, text: "Einen Moment bitte.", actions: [{ label: "Abbrechen", run: stopApp }], onBack: stopApp });
+      return showDialog({ key, spinner: true, title: `${name} wird gestartet …`, text: "Please wait.", actions: [{ label: "Cancel", run: stopApp }], onBack: stopApp });
     case "running":
       return showDialog({
         key,
         tone: "ok",
         title: `${name} läuft`,
-        text: "Die Anwendung ist in einem eigenen Fenster geöffnet. Nach dem Beenden erscheint wieder diese Oberfläche.",
-        actions: [{ label: "App beenden", run: stopApp }, { label: "Ausblenden", run: closeDialog }],
+        text: "The application ist in einem eigenen Fenster geöffnet. Nach dem Beenden erscheint wieder diese Oberfläche.",
+        actions: [{ label: "Stop app", run: stopApp }, { label: "Hide", run: closeDialog }],
         onBack: closeDialog,
       });
     case "stopping":
@@ -536,13 +536,13 @@ function onExit(exit) {
     showDialog({
       key: `exit:${exit.seq}`,
       tone: "error",
-      title: exit.reason === "crashed" ? `${name} wurde unerwartet beendet` : `${name} konnte nicht gestartet werden`,
+      title: exit.reason === "crashed" ? `${name} exited unexpectedly` : `${name} could not be started`,
       text: `${detail} nach ${Math.round(exit.runtime_s)} s.`,
       actions,
       onBack: closeDialog,
     });
   } else if (exit.reason === "ok") {
-    toast(`${name} wurde beendet.`);
+    toast(`${name} has exited.`);
   }
 }
 
@@ -571,10 +571,10 @@ function setOnline(flag, err) {
       key: "offline",
       tone: "error",
       spinner: true,
-      title: "Backend nicht erreichbar",
-      text: backendError ? `Das Backend meldet einen Fehler: ${err.message}` : "LivingroomOS verbindet sich automatisch erneut …",
+      title: "Backend unavailable",
+      text: backendError ? `The backend reports an error: ${err.message}` : "LivingroomOS will reconnect automatically …",
       actions: [{ label: "Jetzt erneut versuchen", run: retryNow }],
-      onBack: () => {}, // nicht ausblendbar
+      onBack: () => {}, // cannot be dismissed
     });
   } else if (flag && state.dialog?.key === "offline") {
     closeDialog();
